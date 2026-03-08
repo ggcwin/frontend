@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; // ✅ axios ki jagah api use kiya
+import api from '../api'; 
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,7 +27,8 @@ const Transfer = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const cleanAmount = Math.floor(Number(formData.amount)) || 0;
+    // ✅ FIX 1: Strictly Number conversion taake "10.03" wala issue na aaye
+    const cleanAmount = Number(formData.amount) || 0;
     const calculatedFee = cleanAmount * 0.03; 
     setFee(calculatedFee);
     setTotalDeduction(cleanAmount + calculatedFee);
@@ -35,12 +36,14 @@ const Transfer = () => {
 
   const handleTransfer = async (e) => {
     e.preventDefault();
-    const cleanAmount = Math.floor(Number(formData.amount));
-    const finalCost = cleanAmount + (cleanAmount * 0.03);
-
+    const cleanAmount = Number(formData.amount);
+    
     if (cleanAmount < 1) return toast.error("Minimum transfer is $1.00");
     
-    const currentBalance = senderData.wallets[formData.fromWallet];
+    const finalCost = cleanAmount + (cleanAmount * 0.03);
+    const currentBalance = Number(senderData.wallets[formData.fromWallet]) || 0;
+
+    // Frontend Level Security Check
     if (currentBalance < finalCost) {
       return toast.error(`Insufficient Balance! You need $${finalCost.toFixed(2)} total (including 3% fee).`);
     }
@@ -49,8 +52,8 @@ const Transfer = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // ✅ Lamba link khatam
-      const res = await api.post('/api/transfer/send', 
+      // ✅ FIX 2: API endpoint '/api/transfer' kar diya
+      const res = await api.post('/api/transfer', 
         {
           senderId: senderData._id, 
           receiverUsername: formData.receiverUsername,
@@ -62,8 +65,15 @@ const Transfer = () => {
         }
       );
 
-      const updatedUser = { ...senderData };
-      updatedUser.wallets[formData.fromWallet] -= finalCost;
+      // ✅ FIX 3: Backend se aane wala secure balance UI mein update kar diya
+      const updatedUser = { 
+          ...senderData, 
+          wallets: {
+              ...senderData.wallets,
+              [formData.fromWallet]: res.data.newBalance
+          }
+      };
+      
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setSenderData(updatedUser);
 
@@ -119,7 +129,7 @@ const Transfer = () => {
             <div style={styles.inputGroup}>
               <label style={styles.label}>Amount to Send ($)</label>
               <input 
-                type="number" placeholder="Enter whole number" 
+                type="number" placeholder="Enter amount" 
                 style={styles.input} required
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
@@ -128,8 +138,8 @@ const Transfer = () => {
               {formData.amount > 0 && (
                 <div style={styles.feeLedger}>
                     <div style={styles.ledgerRow}>
-                        <span>Whole Amount:</span>
-                        <span>${Math.floor(formData.amount)}</span>
+                        <span>Amount:</span>
+                        <span>${Number(formData.amount).toFixed(2)}</span>
                     </div>
                     <div style={styles.ledgerRow}>
                         <span style={{color: '#ff4b2b'}}>Transfer Fee (3%):</span>
