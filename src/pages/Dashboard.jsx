@@ -15,9 +15,12 @@ const Dashboard = () => {
   
   // 🎰 SLOT MACHINE STATES
   const [showSlotMachine, setShowSlotMachine] = useState(false);
-  const [drawStage, setDrawStage] = useState(0); // 1st, 2nd, 3rd Prize
+  const [drawStage, setDrawStage] = useState(0); 
   const [slotDigits, setSlotDigits] = useState(['0', '0', '0']);
   const [finalResults, setFinalResults] = useState([]);
+
+  // 🎵 SOUND EFFECT (Live URL for Casino Slot Spin)
+  const [spinAudio] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'));
 
   const navigate = useNavigate();
 
@@ -37,7 +40,7 @@ const Dashboard = () => {
       const nowPkt = new Date(nowString);
       
       const drawTimePkt = new Date(nowString);
-      drawTimePkt.setHours(23, 0, 0, 0); // 11:00 PM PKT
+      drawTimePkt.setHours(23, 0, 0, 0); 
       
       if (nowPkt > drawTimePkt) {
           drawTimePkt.setDate(drawTimePkt.getDate() + 1);
@@ -45,14 +48,12 @@ const Dashboard = () => {
       
       const diff = drawTimePkt - nowPkt;
 
-      // 3 mins pehle button disable
       if (diff <= 180000 && diff > 0) {
           setIsButtonDisabled(true);
       } else {
           setIsButtonDisabled(false);
       }
 
-      // 🚨 EXACTLY 11:00:00 PM PAR SLOT MACHINE TRIGGER KAREIN
       if (nowPkt.getHours() === 23 && nowPkt.getMinutes() === 0 && nowPkt.getSeconds() === 0) {
           triggerSlotMachine();
       }
@@ -80,64 +81,59 @@ const Dashboard = () => {
       } catch (err) {}
   };
 
-  // 🎰 ASLI SLOT MACHINE LOGIC
   const triggerSlotMachine = async () => {
       if (showSlotMachine) return; 
       
-      // Background Dull karna aur Machine dikhana
       setShowSlotMachine(true);
       setFinalResults([]);
 
-      // Frontend par hi Admin numbers ya Random numbers set karna
-      // Yahan hum system ko random generate karne ka backup de rahay hain
+      // 🎵 SOUND ON: 36 seconds tak chalti rahay
+      spinAudio.loop = true;
+      spinAudio.play().catch(err => console.log("Browser autoplay blocked", err));
+
       const generatedWinners = [
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), // 1st
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), // 2nd
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0')  // 3rd
+          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
+          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
+          Math.floor(Math.random() * 1000).toString().padStart(3, '0')  
       ];
 
-      // 1️⃣ First Prize Draw
       await runSpin(1, generatedWinners[0]);
-      
-      // 2️⃣ Second Prize Draw
       await runSpin(2, generatedWinners[1]);
-      
-      // 3️⃣ Third Prize Draw
       await runSpin(3, generatedWinners[2]);
 
-      // Draw khatam, 4 seconds result dikha kar gayab
+      // 4 seconds gap before hiding
       setTimeout(() => {
+          // 🎵 SOUND OFF: Draw complete
+          spinAudio.pause();
+          spinAudio.currentTime = 0;
+
           setShowSlotMachine(false);
           setDrawStage(0);
-          fetchWinners(); // Naye winners load karein
+          fetchWinners(); 
       }, 4000);
   };
 
-  // Ek draw ka 12 second ka spin
   const runSpin = (stageNum, finalNumber) => {
       return new Promise((resolve) => {
           setDrawStage(stageNum);
           
-          // Tez spinning animation
           const spinInterval = setInterval(() => {
               setSlotDigits([
                   Math.floor(Math.random() * 10).toString(),
                   Math.floor(Math.random() * 10).toString(),
                   Math.floor(Math.random() * 10).toString()
               ]);
-          }, 100); // Har 0.1s mein number badlega
+          }, 100); 
 
-          // Exact 12 seconds baad rokna
           setTimeout(() => {
               clearInterval(spinInterval);
               setSlotDigits(finalNumber.split(''));
               setFinalResults(prev => [...prev, { stage: stageNum, number: finalNumber }]);
               
-              // Agle draw se pehle 2 seconds ka gap
               setTimeout(() => {
                   resolve();
               }, 2000);
-          }, 12000); // ⏱️ 12 Seconds ki timing
+          }, 12000); 
       });
   };
 
@@ -171,7 +167,7 @@ const Dashboard = () => {
   return (
     <div style={styles.container}>
       
-      {/* 🎰 FULL SCREEN SLOT MACHINE OVERLAY */}
+      {/* 🎰 SLOT MACHINE OVERLAY */}
       {showSlotMachine && (
           <div style={styles.slotOverlay}>
               <div style={styles.slotMachineBox}>
@@ -201,7 +197,7 @@ const Dashboard = () => {
           </div>
       )}
 
-      {/* BACKGROUND APP (Dull ho jayegi jab overlay active hoga) */}
+      {/* BACKGROUND APP */}
       <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s' }}>
           <div className="money-rain">
             {[...Array(20)].map((_, i) => (
@@ -213,7 +209,6 @@ const Dashboard = () => {
           
           <div style={{textAlign: 'center', marginTop: '10px'}}>
             <span style={styles.timerChip}>Next Draw: {timeLeft}</span>
-            {/* 🔴 ADMIN TESTING BUTTON (Sirf admin ko nazar aayega taake woh testing kar sakay bina 11PM wait kiye) */}
             {userData?.role === 'admin' && (
                 <button onClick={triggerSlotMachine} style={{marginLeft: '10px', background: 'red', color: 'white', padding: '5px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer'}}>
                     Test Slot Machine
@@ -253,7 +248,6 @@ const Dashboard = () => {
             </div>
 
             <div style={styles.bottomGrid}>
-              
               <div style={styles.infoBox}>
                 <h3 style={{color: '#ffcc33', marginBottom: '15px'}}>🏆 Recent Winners</h3>
                 {realWinners.length > 0 ? realWinners.map((w, i) => (
@@ -324,11 +318,8 @@ const Dashboard = () => {
   );
 };
 
-// Styles
 const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 0 50px 0', position: 'relative', overflowX: 'hidden', fontFamily: "'Montserrat', sans-serif" },
-  
-  // 🎰 SLOT MACHINE STYLES
   slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
   slotMachineBox: { backgroundColor: '#1a0033', border: '5px solid #ffcc33', borderRadius: '30px', padding: '40px', textAlign: 'center', boxShadow: '0 0 50px rgba(255,204,51,0.5)', minWidth: '350px' },
   slotTitle: { color: '#ffcc33', fontSize: '2rem', fontWeight: '900', marginBottom: '30px', textShadow: '0 2px 10px rgba(255,204,51,0.5)' },
@@ -337,8 +328,6 @@ const styles = {
   slotSubtitle: { color: '#00e676', fontSize: '1rem', marginBottom: '30px', fontWeight: 'bold', animation: 'pulse 1s infinite' },
   resultsBoard: { display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '15px' },
   resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)' },
-
-  // DASHBOARD STYLES
   timerChip: { backgroundColor: '#ff4b2b', color: 'white', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold' },
   mainContent: { maxWidth: '1100px', margin: '30px auto', position: 'relative', zIndex: 1, padding: '0 20px' },
   navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' },
@@ -365,7 +354,6 @@ const styles = {
   walletSelect: { padding: '12px', borderRadius: '12px', border: 'none', outline: 'none', fontWeight: 'bold', fontSize: '1rem', color: '#333' },
   ticketInput: { width: '80%', padding: '15px', borderRadius: '15px', border: 'none', fontSize: '2.5rem', textAlign: 'center', fontWeight: 'bold', marginBottom: '25px' },
   playBtn: { width: '100%', padding: '18px', borderRadius: '15px', border: 'none', fontWeight: '900', fontSize: '1.2rem', transition: '0.3s' },
-  
   ticketRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', marginBottom: '10px', borderLeft: '4px solid #00baf2' },
   tNumber: { fontSize: '1.3rem', fontWeight: '900', letterSpacing: '2px' },
   badgeWon: { backgroundColor: 'rgba(0, 230, 118, 0.2)', color: '#00e676', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold' },
