@@ -12,7 +12,7 @@ const Register = () => {
         fullName: '', 
         email: '', 
         password: '', 
-        referralCode: refFromUrl || '' // ✅ FIXED: Variable name matched with backend
+        referralCode: refFromUrl || '' 
     });
     
     const navigate = useNavigate();
@@ -26,8 +26,10 @@ const Register = () => {
     const handleRegister = async (e) => {
         e.preventDefault();
         const loading = toast.loading("Creating Account...");
+        
+        console.log("Sending Data to Backend:", formData); // ✅ Testing ke liye console check karein
+
         try {
-            // Backend ko 'referralCode' hi bheja jayega
             await api.post('/api/auth/register', formData);
             toast.success("Registration Successful!", { id: loading });
             navigate('/'); 
@@ -60,14 +62,13 @@ const Register = () => {
                         <input type="email" placeholder="EMAIL ADDRESS" style={styles.input} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
                         <input type="password" placeholder="PASSWORD" style={styles.input} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
                         
-                        {/* ✅ NAYA: Referral Code Box (Link se aye toh auto-fill, warna manual enter karein) */}
                         <div style={{position: 'relative'}}>
                             <input 
                                 type="text" 
                                 placeholder="REFERRAL CODE (OPTIONAL)" 
                                 style={{...styles.input, borderColor: formData.referralCode ? '#00e676' : 'rgba(255,255,255,0.2)', width: '100%'}} 
                                 value={formData.referralCode}
-                                onChange={(e) => setFormData({...formData, referralCode: e.target.value.toUpperCase()})} 
+                                onChange={(e) => setFormData({...formData, referralCode: e.target.value})} 
                             />
                             {formData.referralCode && <span style={{position: 'absolute', right: '10px', top: '12px'}}>🎁</span>}
                         </div>
