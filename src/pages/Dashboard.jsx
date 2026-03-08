@@ -164,6 +164,13 @@ const Dashboard = () => {
               <button onClick={() => navigate('/history')} style={styles.iconBtn}>📋 History</button>
               <button onClick={() => navigate('/transfer')} style={styles.iconBtn}>💸 Transfer</button>
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
+              
+              {/* ✅ NAYA: Admin Button sirf Admin ko nazar aayega */}
+              {userData?.role === 'admin' && (
+                  <button onClick={() => navigate('/admin/dashboard')} style={{...styles.iconBtn, backgroundColor: '#ff4b2b', borderColor: '#ff4b2b', color: 'white', fontWeight: 'bold'}}>
+                      👑 Admin
+                  </button>
+              )}
             </div>
 
             {/* ✅ HERO SECTION (Username & Welcome Message restored here) */}
