@@ -1,0 +1,10 @@
+{
+  "appId": "com.ggcwin.app",
+  "appName": "GGCWIN",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": ["ggcwin-backend.onrender.com"]
+  }
+}
