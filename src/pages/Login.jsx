@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../api'; // ✅ axios ki jagah api use kiya
+import api from '../api'; 
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -17,7 +17,6 @@ const Login = () => {
 
         const loading = toast.loading("Verifying Identity...");
         try {
-            // ✅ Lamba link khatam
             const res = await api.post('/api/auth/login', formData);
             
             localStorage.setItem('token', res.data.token); 
@@ -101,6 +100,14 @@ const Login = () => {
                             />
                         </div>
 
+                        {/* ✅ NAYA: Forgot Password Link */}
+                        <p 
+                            onClick={() => navigate('/forgot-password')} 
+                            style={styles.forgotPassword}
+                        >
+                            Forgot Password?
+                        </p>
+
                         <button type="submit" style={styles.spinBtn}>SPIN TO LOGIN</button>
                     </form>
 
@@ -137,7 +144,12 @@ const styles = {
     title: { color: '#ffcc33', fontSize: '2rem', fontWeight: '900', marginBottom: '10px' },
     subtitle: { color: 'white', opacity: 0.7, fontSize: '0.9rem', marginBottom: '30px' },
     form: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    inputGroup: { display: 'flex', flexDirection: 'column' },
     input: { padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem', outline: 'none', textAlign: 'center' },
+    
+    // ✅ Forgot Password Styling
+    forgotPassword: { color: '#ffcc33', cursor: 'pointer', textAlign: 'right', margin: '-10px 0 0 0', fontSize: '0.9rem', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' },
+    
     spinBtn: { padding: '15px', borderRadius: '12px', border: 'none', backgroundColor: '#ffcc33', color: '#5e3a00', fontWeight: '900', fontSize: '1.2rem', cursor: 'pointer', boxShadow: '0 4px 0 #b99100' },
     footerText: { marginTop: '20px', fontSize: '0.9rem', color: 'white', opacity: 0.8 },
     link: { color: '#ffcc33', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }
