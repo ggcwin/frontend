@@ -1,136 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; // ✅ axios ki jagah api import kiya
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import api from '../api';
 import toast from 'react-hot-toast';
 
 const History = () => {
-  const [activeTab, setActiveTab] = useState('transactions'); 
-  const [transactions, setTransactions] = useState([]);
-  const [winners, setWinners] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const location = useLocation();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) return navigate('/');
+    // 🔍 FILTERS STATE
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [selectedWallet, setSelectedWallet] = useState(location.state?.filterWallet || 'all');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const fetchData = async () => {
-      try {
-        // ✅ Lambe links khatam
-        const [transRes, winRes] = await Promise.all([
-          api.get(`/api/transaction/${user._id}`),
-          api.get(`/api/ticket/winners/recent`)
-        ]);
-        setTransactions(transRes.data);
-        setWinners(winRes.data);
-      } catch (err) {
-        toast.error("Failed to load history data");
-      }
-    };
-    fetchData();
-  }, [navigate]);
+    useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (!user) return navigate('/');
 
-  const filteredTransactions = transactions.filter(t => 
-    t.details.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    new Date(t.date).toLocaleDateString().includes(searchTerm)
-  );
+                const res = await api.get(`/api/transaction/history/${user._id}`);
+                setHistory(res.data);
+                setLoading(false);
+            } catch (err) {
+                toast.error("Failed to load transaction history");
+                setLoading(false);
+            }
+        };
+        fetchHistory();
+    }, [navigate]);
 
-  const filteredWinners = winners.filter(w => 
-    w.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    w.number.includes(searchTerm) ||
-    w.date.includes(searchTerm)
-  );
+    // 🎯 FILTER LOGIC
+    const filteredData = history.filter(item => {
+        const itemDate = new Date(item.createdAt).toISOString().split('T')[0];
+        
+        // Date Filter
+        const dateMatch = (!startDate || itemDate >= startDate) && (!endDate || itemDate <= endDate);
+        
+        // Wallet Filter (Details mein check karta hai ke kaunsa wallet use hua)
+        const walletMatch = selectedWallet === 'all' || 
+                           item.details.toLowerCase().includes(selectedWallet.toLowerCase()) ||
+                           item.type.toLowerCase().includes(selectedWallet.toLowerCase());
 
-  return (
-    <div style={styles.container}>
-      <nav style={styles.navbar}>
-        <h2 style={{color: '#ffcc33', margin: 0}}>GGC ACTIVITY LOG</h2>
-        <button onClick={() => navigate('/dashboard')} style={styles.backBtn}>← Dashboard</button>
-      </nav>
+        // Search Match
+        const searchMatch = item.details.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           item.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-      <div style={styles.content}>
-        <div style={styles.controls}>
-          <input 
-            type="text" 
-            placeholder="Search by date, type, or number..." 
-            style={styles.searchBar}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <div style={styles.tabGroup}>
-            <button 
-              onClick={() => setActiveTab('transactions')} 
-              style={activeTab === 'transactions' ? styles.activeTab : styles.tab}
-            >My History</button>
-            <button 
-              onClick={() => setActiveTab('winners')} 
-              style={activeTab === 'winners' ? styles.activeTab : styles.tab}
-            >Winner Board</button>
-          </div>
+        return dateMatch && walletMatch && searchMatch;
+    });
+
+    return (
+        <div style={styles.container}>
+            <nav style={styles.navbar}>
+                <h2 style={styles.navLogo} onClick={() => navigate('/dashboard')}>GGC WIN</h2>
+                <button onClick={() => navigate('/dashboard')} style={styles.backBtn}>← Back to Dashboard</button>
+            </nav>
+
+            <div style={styles.content}>
+                <h1 style={styles.title}>📜 Transaction History</h1>
+
+                {/* 📂 FILTERS SECTION */}
+                <div style={styles.filterCard}>
+                    <div style={styles.filterGrid}>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Start Date</label>
+                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={styles.input} />
+                        </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>End Date</label>
+                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.input} />
+                        </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Filter by Wallet</label>
+                            <select value={selectedWallet} onChange={(e) => setSelectedWallet(e.target.value)} style={styles.select}>
+                                <option value="all">All Wallets</option>
+                                <option value="deposit">Play Balance</option>
+                                <option value="win">Win Wallet</option>
+                                <option value="reward">Reward/Bonus</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input 
+                        type="text" 
+                        placeholder="Search by details (e.g. Ticket #316)..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        style={{...styles.input, marginTop: '15px', width: '96%'}}
+                    />
+                </div>
+
+                {/* 📊 DATA TABLE */}
+                <div style={styles.tableWrapper}>
+                    {loading ? (
+                        <p style={styles.msg}>Loading your records...</p>
+                    ) : filteredData.length === 0 ? (
+                        <p style={styles.msg}>No records found for the selected filters.</p>
+                    ) : (
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>Date & Time</th>
+                                    <th style={styles.th}>Type</th>
+                                    <th style={styles.th}>Details</th>
+                                    <th style={styles.th}>Amount</th>
+                                    <th style={styles.th}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredData.map((item, i) => (
+                                    <tr key={i} style={styles.tr}>
+                                        <td style={styles.td}>
+                                            {new Date(item.createdAt).toLocaleDateString()}<br/>
+                                            <small style={{opacity: 0.6}}>{new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                                        </td>
+                                        <td style={{...styles.td, textTransform: 'capitalize', fontWeight: 'bold', color: '#00baf2'}}>
+                                            {item.type}
+                                        </td>
+                                        <td style={styles.td}>{item.details}</td>
+                                        <td style={{...styles.td, color: item.amount > 0 && item.type !== 'purchase' ? '#00e676' : '#ff4b2b', fontWeight: 'bold'}}>
+                                            {item.amount > 0 && item.type !== 'purchase' ? '+' : ''}${Number(item.amount).toFixed(2)}
+                                        </td>
+                                        <td style={styles.td}>
+                                            <span style={styles.badge}>{item.status.toUpperCase()}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
         </div>
-
-        <div style={styles.tableCard}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.headerRow}>
-                {activeTab === 'transactions' ? (
-                  <><th>Date</th><th>Type</th><th>Details</th><th>Amount</th><th>Status</th></>
-                ) : (
-                  <><th>Date</th><th>Winner</th><th>Number</th><th>Prize</th></>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {activeTab === 'transactions' ? (
-                filteredTransactions.map((t, i) => (
-                  <tr key={i} style={styles.row}>
-                    <td>{new Date(t.date).toLocaleDateString()}</td>
-                    <td style={{textTransform: 'capitalize', color: '#00baf2'}}>{t.type.replace('_', ' ')}</td>
-                    <td>{t.details}</td>
-                    <td style={{color: '#00e676', fontWeight: 'bold'}}>${Math.floor(t.amount)}</td>
-                    <td><span style={t.status === 'completed' ? styles.success : styles.pending}>{t.status}</span></td>
-                  </tr>
-                ))
-              ) : (
-                filteredWinners.map((w, i) => (
-                  <tr key={i} style={styles.row}>
-                    <td>{w.date}</td>
-                    <td style={{color: '#ffcc33'}}>{w.username}</td>
-                    <td style={{fontWeight: '900', fontSize: '1.1rem'}}>{w.number}</td>
-                    <td style={{color: '#00e676'}}>{w.prize}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          {(activeTab === 'transactions' ? filteredTransactions : filteredWinners).length === 0 && (
-            <p style={{textAlign: 'center', padding: '40px', opacity: 0.5}}>No records found.</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 const styles = {
-  container: { backgroundColor: '#121212', color: 'white', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
-  navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 5%', backgroundColor: '#1e1e1e', borderBottom: '1px solid #333' },
-  backBtn: { background: 'none', border: '1px solid #ffcc33', color: '#ffcc33', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer' },
-  content: { maxWidth: '1000px', margin: '30px auto', padding: '0 20px' },
-  controls: { display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' },
-  searchBar: { padding: '15px', borderRadius: '12px', border: '1px solid #444', backgroundColor: '#222', color: 'white', fontSize: '1rem', outline: 'none' },
-  tabGroup: { display: 'flex', gap: '10px' },
-  tab: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #444', backgroundColor: '#222', color: 'white', cursor: 'pointer', fontWeight: 'bold' },
-  activeTab: { flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: '#ffcc33', color: '#5e3a00', cursor: 'pointer', fontWeight: 'bold' },
-  tableCard: { backgroundColor: '#1e1e1e', borderRadius: '15px', overflowX: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' },
-  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-  headerRow: { backgroundColor: '#252525', color: '#888', fontSize: '0.85rem' },
-  row: { borderBottom: '1px solid #333', fontSize: '0.9rem' },
-  success: { color: '#00e676', backgroundColor: 'rgba(0, 230, 118, 0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' },
-  pending: { color: '#ffcc33', backgroundColor: 'rgba(255, 204, 51, 0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }
+    container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
+    navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 5%', backgroundColor: 'rgba(0,0,0,0.3)' },
+    navLogo: { color: '#ffcc33', fontWeight: '900', cursor: 'pointer' },
+    backBtn: { background: 'none', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer' },
+    content: { maxWidth: '1000px', margin: '40px auto', padding: '0 20px' },
+    title: { textAlign: 'center', marginBottom: '30px', fontWeight: '900', color: '#ffcc33' },
+    filterCard: { backgroundColor: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '20px', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' },
+    filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' },
+    inputGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
+    label: { fontSize: '0.8rem', fontWeight: 'bold', color: '#ffcc33' },
+    input: { padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' },
+    select: { padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' },
+    tableWrapper: { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '20px', overflow: 'hidden' },
+    table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+    th: { padding: '15px', backgroundColor: 'rgba(255,255,255,0.1)', color: '#ffcc33', fontSize: '0.9rem' },
+    tr: { borderBottom: '1px solid rgba(255,255,255,0.05)' },
+    td: { padding: '15px', fontSize: '0.85rem' },
+    badge: { backgroundColor: 'rgba(0, 230, 118, 0.2)', color: '#00e676', padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold' },
+    msg: { textAlign: 'center', padding: '40px', opacity: 0.5 }
 };
-styles.table.th = { padding: '15px' };
-styles.row.td = { padding: '15px' };
 
 export default History;
