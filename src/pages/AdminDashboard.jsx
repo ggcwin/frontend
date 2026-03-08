@@ -92,11 +92,19 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* --- QUICK ACTIONS (Naye Buttons Add Kar Diye Hain) --- */}
+        {/* --- QUICK ACTIONS --- */}
         <h3 style={{marginTop: '40px', marginBottom: '20px'}}>⚡ Quick Actions</h3>
         <div style={styles.actionGrid}>
           <button onClick={() => navigate('/admin/deposits')} style={{...styles.actionBtn, borderColor: '#00e676'}}>💰 Pending Deposits</button>
-          <button onClick={() => navigate('/admin/draw')} style={{...styles.actionBtn, borderColor: '#00baf2'}}>🏆 Ticket Draw</button>
+          
+          {/* ✅ Ye button Admin Draw page par le kar jaye ga jahan "Number Lock" hai */}
+          <button 
+            onClick={() => navigate('/admin/draw')} 
+            style={{...styles.actionBtn, borderColor: '#ff4b2b', backgroundColor: 'rgba(255, 75, 43, 0.1)', color: '#ff4b2b', border: '2px solid #ff4b2b'}}
+          >
+            🎯 Ticket Draw (Number Lock 🔒)
+          </button>
+          
           <button onClick={() => navigate('/admin/vouchers')} style={styles.actionBtn}>🎟️ Vouchers</button>
           <button onClick={() => navigate('/admin/withdrawals')} style={styles.actionBtn}>🏦 Withdrawals</button>
           <button onClick={() => navigate('/admin/settings')} style={styles.actionBtn}>⚙️ Settings</button>
@@ -195,18 +203,14 @@ const styles = {
   value: { fontSize: '2.5rem', margin: '10px 0 0 0' },
   actionGrid: { display: 'flex', gap: '15px', flexWrap: 'wrap' },
   actionBtn: { flex: 1, minWidth: '180px', padding: '15px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#1e1e1e', color: 'white', cursor: 'pointer', fontWeight: 'bold', transition: '0.3s', fontSize: '1rem', textAlign: 'center' },
-  
-  // Table Styles
   tableContainer: { overflowX: 'auto', backgroundColor: '#1e1e1e', borderRadius: '15px', padding: '15px', border: '1px solid #333' },
   table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
   th: { padding: '15px', borderBottom: '2px solid #333', color: '#ffcc33', fontWeight: 'bold', whiteSpace: 'nowrap' },
   td: { padding: '15px', borderBottom: '1px solid #333', whiteSpace: 'nowrap' },
   tr: { transition: '0.2s hover:bg-[#2a2a2a]' },
-  addMoneyBtn: { padding: '8px 12px', backgroundColor: '#00e676', color: '#000', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,230,118,0.3)' },
-
-  // Modal Styles
+  addMoneyBtn: { padding: '8px 12px', backgroundColor: '#00e676', color: '#000', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
-  modalBox: { backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '15px', width: '90%', maxWidth: '400px', border: '1px solid #ffcc33', boxShadow: '0 15px 30px rgba(0,0,0,0.6)' },
+  modalBox: { backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '15px', width: '90%', maxWidth: '400px', border: '1px solid #ffcc33' },
   modalLabel: { fontSize: '0.9rem', marginBottom: '5px', display: 'block', color: '#ccc' },
   modalInput: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #555', backgroundColor: '#2a2a2a', color: 'white', fontSize: '1rem' },
   submitBtn: { flex: 1, padding: '12px', backgroundColor: '#ffcc33', border: 'none', color: '#000', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer' },
