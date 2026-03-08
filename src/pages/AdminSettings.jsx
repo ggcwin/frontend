@@ -21,10 +21,11 @@ const AdminSettings = () => {
         telegramLink: ''
     });
 
-    // 🔄 Fetch Current Settings on Load
+    // 🔄 Step 1: Fetch Current Settings on Load (Database se data lana)
     useEffect(() => {
         const fetchCurrentSettings = async () => {
             try {
+                // Backend se settings mangwana
                 const res = await api.get('/api/settings');
                 if (res.data) {
                     setSettings({
@@ -38,12 +39,13 @@ const AdminSettings = () => {
                     });
                 }
             } catch (err) {
-                console.log("Failed to load settings. It might be empty currently.");
+                console.log("Settings not found or server error. Using empty fields.");
             }
         };
         fetchCurrentSettings();
     }, []);
 
+    // Step 2: Password Reset Logic
     const handleReset = async (e) => {
         e.preventDefault();
         if (!username || !newPassword) return toast.error("Please fill both fields!");
@@ -51,7 +53,7 @@ const AdminSettings = () => {
         const loading = toast.loading("Updating password securely...");
         try {
             const res = await api.post('/api/admin/reset-user-password', { username, newPassword });
-            toast.success(res.data.message, { id: loading });
+            toast.success(res.data.message || "Password Updated!", { id: loading });
             setUsername('');
             setNewPassword('');
         } catch (err) {
@@ -59,16 +61,17 @@ const AdminSettings = () => {
         }
     };
 
-    // --- Payment Settings Handler ---
+    // Step 3: Payment Settings Update Logic (Database mein save karna)
     const handlePaymentUpdate = async (e) => {
         e.preventDefault();
         const loading = toast.loading("Saving settings to server...");
         try {
-            await api.post('/api/settings/update', settings); 
-            toast.success("System Settings Updated Successfully!", { id: loading });
+            // Backend route ko data bhej raha hai
+            const res = await api.post('/api/settings/update', settings); 
+            toast.success(res.data.message || "System Settings Updated Successfully!", { id: loading });
         } catch (err) {
             console.error("Settings Update Error:", err);
-            toast.error("Update failed. Check backend route.", { id: loading });
+            toast.error(err.response?.data?.message || "Update failed. Check backend route.", { id: loading });
         }
     };
 
@@ -92,7 +95,7 @@ const AdminSettings = () => {
                 <div style={{...styles.card, maxWidth: '600px'}}>
                     <h2 style={{ color: '#00e676', fontSize: '1.5rem', margin: '0 0 10px 0' }}>🏦 Payment Methods</h2>
                     <p style={styles.subtitle}>
-                        Update your master wallets and accounts. Players will see these details on the Deposit page.
+                        Update master wallets. Players will see these on the Deposit page.
                     </p>
                     
                     <form onSubmit={handlePaymentUpdate} style={styles.form}>
@@ -108,11 +111,11 @@ const AdminSettings = () => {
                                 <input type="text" name="usdtBEP20" value={settings.usdtBEP20} onChange={handleInputChange} style={styles.input} placeholder="0x..." />
                             </div>
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>ERC20 (Ethereum)</label>
+                                <label style={styles.label}>ERC20 (ETH)</label>
                                 <input type="text" name="usdtERC20" value={settings.usdtERC20} onChange={handleInputChange} style={styles.input} placeholder="0x..." />
                             </div>
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Polygon (Matic)</label>
+                                <label style={styles.label}>Polygon</label>
                                 <input type="text" name="usdtPolygon" value={settings.usdtPolygon} onChange={handleInputChange} style={styles.input} placeholder="0x..." />
                             </div>
                         </div>
@@ -120,7 +123,7 @@ const AdminSettings = () => {
                         <h4 style={styles.sectionHeader}>🔵 Local & Social Settings</h4>
                         <div style={styles.inputGroup}>
                             <label style={{...styles.label, color: '#00baf2'}}>Paytm / UPI (India)</label>
-                            <input type="text" name="paytmUpi" value={settings.paytmUpi} onChange={handleInputChange} style={styles.input} placeholder="Phone Number or UPI ID" />
+                            <input type="text" name="paytmUpi" value={settings.paytmUpi} onChange={handleInputChange} style={styles.input} placeholder="UPI ID or Phone" />
                         </div>
                         <div style={styles.inputGroup}>
                             <label style={{...styles.label, color: '#ff4b2b'}}>JazzCash (Pakistan)</label>
@@ -128,7 +131,7 @@ const AdminSettings = () => {
                         </div>
                         <div style={styles.inputGroup}>
                             <label style={{...styles.label, color: '#0088cc'}}>Telegram Support Link</label>
-                            <input type="text" name="telegramLink" value={settings.telegramLink} onChange={handleInputChange} style={styles.input} placeholder="https://t.me/yourusername" />
+                            <input type="text" name="telegramLink" value={settings.telegramLink} onChange={handleInputChange} style={styles.input} placeholder="https://t.me/..." />
                         </div>
 
                         <button type="submit" style={{...styles.btn, backgroundColor: '#00e676', color: '#000', boxShadow: '0 4px 0 #00b35c', marginTop: '20px'}}>
@@ -141,14 +144,14 @@ const AdminSettings = () => {
                 <div style={{...styles.card, maxWidth: '600px'}}>
                     <h2 style={styles.cardTitle}>🔑 Player Password Reset</h2>
                     <p style={styles.subtitle}>
-                        Securely change any user's password without viewing their current one. The new password will be hashed automatically.
+                        Securely change any user's password. It will be hashed automatically.
                     </p>
                     
                     <form onSubmit={handleReset} style={styles.form}>
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Player Username</label>
                             <input 
-                                type="text" placeholder="e.g., Zain_Win" 
+                                type="text" placeholder="e.g., lovely123" 
                                 style={styles.input} value={username}
                                 onChange={(e) => setUsername(e.target.value.trim())} required
                             />
@@ -163,7 +166,7 @@ const AdminSettings = () => {
                             />
                         </div>
 
-                        <button type="submit" style={styles.btn}>RESET PASSWORD</button>
+                        <button type="submit" style={styles.btn}>RESET PASSWORD NOW</button>
                     </form>
                 </div>
 
@@ -172,6 +175,7 @@ const AdminSettings = () => {
     );
 };
 
+// Styles (Aap ke original styles ko barkarar rakha gaya hai)
 const styles = {
     container: { backgroundColor: '#121212', minHeight: '100vh', color: 'white', fontFamily: "'Montserrat', sans-serif" },
     navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 5%', backgroundColor: '#1e1e1e', borderBottom: '2px solid #333' },
