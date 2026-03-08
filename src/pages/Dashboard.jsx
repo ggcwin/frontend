@@ -4,7 +4,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 
-// ✅ 1. Apni local sound file import karein
+// ✅ Sound file import (Make sure file exists in src/assets/slot-sound.mp3)
 import spinSoundFile from '../assets/slot-sound.mp3';
 
 const Dashboard = () => {
@@ -21,7 +21,7 @@ const Dashboard = () => {
   const [slotDigits, setSlotDigits] = useState(['0', '0', '0']);
   const [finalResults, setFinalResults] = useState([]);
 
-  // ✅ 2. Local Audio Object banayen
+  // ✅ Audio Object with local file
   const [spinAudio] = useState(new Audio(spinSoundFile));
 
   const navigate = useNavigate();
@@ -79,10 +79,11 @@ const Dashboard = () => {
       setShowSlotMachine(true);
       setFinalResults([]);
 
-      // 🎵 Play Local Sound
+      // 🎵 Play Sound
       spinAudio.loop = true;
       spinAudio.play().catch(e => console.log("Sound play error:", e));
 
+      // Backup random numbers if admin hasn't set them
       const generatedWinners = [
           Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
           Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
@@ -113,7 +114,7 @@ const Dashboard = () => {
               ]);
           }, 100); 
 
-          // ✅ ⏱️ Time reduced to 10 seconds as requested
+          // ✅ ⏱️ Reduced to 10 seconds per spin
           setTimeout(() => {
               clearInterval(spinInterval);
               setSlotDigits(finalNumber.split(''));
@@ -165,7 +166,7 @@ const Dashboard = () => {
                   <div style={styles.resultsBoard}>
                       {finalResults.map((res, i) => (
                           <div key={i} style={styles.resultItem}>
-                              <span>{res.stage === 1 ? '🥇 1st:' : res.stage === 2 ? '🥈 2nd:' : '🥉 3rd:'}</span>
+                              <span>{res.stage === 1 ? '🥇' : res.stage === 2 ? '🥈' : '🥉'} Prize:</span>
                               <span style={{color: '#00e676', fontWeight: 'bold'}}>#{res.number}</span>
                           </div>
                       ))}
@@ -175,15 +176,10 @@ const Dashboard = () => {
       )}
 
       <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s' }}>
-          <div className="money-rain">
-            {[...Array(20)].map((_, i) => (
-              <div key={i} className="money-note" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 5}s` }}>💵</div>
-            ))}
-          </div>
           <Navbar title="GGC WIN" />
           <div style={{textAlign: 'center', marginTop: '10px'}}>
             <span style={styles.timerChip}>Next Draw: {timeLeft}</span>
-            {userData?.role === 'admin' && <button onClick={triggerSlotMachine} style={styles.testBtn}>Test Slot</button>}
+            {userData?.role === 'admin' && <button onClick={triggerSlotMachine} style={styles.testBtn}>Test Slot Machine</button>}
           </div>
           <div style={styles.mainContent}>
             <div style={styles.navBarShortcuts}>
@@ -192,7 +188,6 @@ const Dashboard = () => {
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
               {userData?.role === 'admin' && <Link to="/admin/dashboard" style={styles.adminLink}>Control</Link>}
             </div>
-            <div style={styles.heroSection}><h1 style={styles.heroTitle}>YOU ARE LUCKY!</h1><p style={styles.heroSubtitle}>Try your luck, {userData?.username}!</p></div>
             <div style={styles.lifetimeCard}><p style={styles.lifetimeLabel}>🏆 TOTAL EARNINGS</p><h1 style={styles.lifetimeAmount}>${Number(userData?.totalEarning || 0).toFixed(2)}</h1></div>
             <div style={styles.walletGrid}>
               <div style={styles.walletCardPurple}><p style={styles.cardLabel}>PLAY BALANCE</p><p style={styles.cardAmount}>${Number(userData?.wallets?.deposit || 0).toFixed(2)}</p><button onClick={() => navigate('/deposit')} style={styles.actionBtn}>➕ DEPOSIT</button></div>
@@ -222,21 +217,18 @@ const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 0 50px 0', position: 'relative', overflowX: 'hidden', fontFamily: "'Montserrat', sans-serif" },
   slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
   slotMachineBox: { backgroundColor: '#1a0033', border: '5px solid #ffcc33', borderRadius: '30px', padding: '40px', textAlign: 'center', boxShadow: '0 0 50px rgba(255,204,51,0.5)', minWidth: '350px' },
-  slotTitle: { color: '#ffcc33', fontSize: '2rem', fontWeight: '900', marginBottom: '30px' },
+  slotTitle: { color: '#ffcc33', fontSize: '1.8rem', fontWeight: '900', marginBottom: '20px' },
   slotWindow: { display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px', backgroundColor: 'rgba(0,0,0,0.5)', padding: '20px', borderRadius: '20px' },
-  slotReel: { width: '80px', height: '100px', backgroundColor: 'white', color: '#000', fontSize: '4rem', fontWeight: '900', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '15px' },
-  slotSubtitle: { color: '#00e676', fontSize: '1rem', marginBottom: '30px', fontWeight: 'bold' },
-  resultsBoard: { display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '15px' },
-  resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)' },
+  slotReel: { width: '70px', height: '90px', backgroundColor: 'white', color: '#000', fontSize: '3.5rem', fontWeight: '900', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '12px' },
+  slotSubtitle: { color: '#00e676', fontSize: '1rem', marginBottom: '20px', fontWeight: 'bold' },
+  resultsBoard: { display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '15px' },
+  resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' },
   timerChip: { backgroundColor: '#ff4b2b', color: 'white', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold' },
   testBtn: { marginLeft: '10px', background: 'red', color: 'white', padding: '5px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer' },
   mainContent: { maxWidth: '1100px', margin: '30px auto', position: 'relative', zIndex: 1, padding: '0 20px' },
   navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' },
   iconBtn: { padding: '8px 15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', cursor: 'pointer' },
   adminLink: { background: 'red', color: 'white', padding: '10px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold' },
-  heroSection: { textAlign: 'center', marginBottom: '30px' },
-  heroTitle: { fontSize: '3rem', fontWeight: '900' },
-  heroSubtitle: { fontSize: '1.1rem', opacity: 0.8 },
   lifetimeCard: { background: 'linear-gradient(45deg, #ffcc33, #ffb347)', padding: '25px', borderRadius: '24px', textAlign: 'center', marginBottom: '30px', color: '#5e3a00', border: '3px solid white' },
   lifetimeLabel: { fontSize: '1rem', fontWeight: '900' },
   lifetimeAmount: { fontSize: '3.5rem', fontWeight: '900' },
