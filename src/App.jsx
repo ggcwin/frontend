@@ -12,6 +12,7 @@ import History from './pages/History';
 import Profile from './pages/Profile';
 import Transfer from './pages/Transfer';
 import BuyTicket from './pages/BuyTicket';
+import ForgotPassword from './pages/ForgotPassword';
 
 // --- ADMIN PAGES IMPORT ---
 import AdminDashboard from './pages/AdminDashboard'; 
@@ -54,6 +55,7 @@ function App() {
         {/* 🔓 PUBLIC ROUTES */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         
         {/* 🔒 SECURE USER ROUTES */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
