@@ -156,24 +156,62 @@ const Dashboard = () => {
       <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s' }}>
           <Navbar title="GGC WIN" />
           <div style={{textAlign: 'center', marginTop: '10px'}}><span style={styles.timerChip}>Next Draw: {timeLeft}</span></div>
+          
           <div style={styles.mainContent}>
+            
+            {/* Quick Actions Shortcuts */}
             <div style={styles.navBarShortcuts}>
               <button onClick={() => navigate('/history')} style={styles.iconBtn}>📋 History</button>
               <button onClick={() => navigate('/transfer')} style={styles.iconBtn}>💸 Transfer</button>
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
             </div>
-            <div style={styles.lifetimeCard}><p style={styles.lifetimeLabel}>🏆 TOTAL EARNINGS</p><h1 style={styles.lifetimeAmount}>${Number(userData?.totalEarning || 0).toFixed(2)}</h1></div>
-            
-            {/* ✅ UPDATED WALLET GRID WITH 3 CARDS */}
-            <div style={styles.walletGrid}>
-              <div style={styles.walletCardPurple}><p style={styles.cardLabel}>PLAY BALANCE</p><p style={styles.cardAmount}>${Number(userData?.wallets?.deposit || 0).toFixed(2)}</p><button onClick={() => navigate('/deposit')} style={styles.actionBtn}>➕ DEPOSIT</button></div>
-              <div style={styles.walletCardOrange}><p style={styles.cardLabel}>WIN WALLET</p><p style={styles.cardAmount}>${Number(userData?.wallets?.win || 0).toFixed(2)}</p><button onClick={() => navigate('/withdraw')} style={styles.actionBtn}>💸 WITHDRAW</button></div>
-              {/* Reward Wallet Card */}
-              <div style={styles.walletCardGold}><p style={styles.cardLabel}>REWARD / BONUS</p><p style={styles.cardAmount}>${Number(userData?.wallets?.reward || 0).toFixed(2)}</p><span style={{fontSize: '0.7rem', opacity: 0.8}}>EXCLUSIVE GIFT</span></div>
+
+            {/* ✅ HERO SECTION (Username & Welcome Message restored here) */}
+            <div style={styles.heroSection}>
+              <h1 style={styles.heroTitle}>YOU ARE LUCKY!</h1>
+              <p style={styles.heroSubtitle}>Small Entry. Big WIN, {userData?.username || 'User'}!</p>
             </div>
 
+            {/* Lifetime Earning Card */}
+            <div style={styles.lifetimeCard}>
+              <p style={styles.lifetimeLabel}>🏆 TOTAL EARNINGS</p>
+              <h1 style={styles.lifetimeAmount}>${Number(userData?.totalEarning || 0).toFixed(2)}</h1>
+            </div>
+            
+            {/* ✅ WALLET GRID (Ab Clickable hain aur History filter karte hain) */}
+            <div style={styles.walletGrid}>
+              <div 
+                onClick={() => navigate('/history', { state: { filterWallet: 'deposit' } })}
+                style={{...styles.walletCardPurple, cursor: 'pointer'}}
+              >
+                <p style={styles.cardLabel}>PLAY BALANCE</p>
+                <p style={styles.cardAmount}>${Number(userData?.wallets?.deposit || 0).toFixed(2)}</p>
+                <button onClick={(e) => { e.stopPropagation(); navigate('/deposit'); }} style={styles.actionBtn}>➕ DEPOSIT</button>
+              </div>
+
+              <div 
+                onClick={() => navigate('/history', { state: { filterWallet: 'win' } })}
+                style={{...styles.walletCardOrange, cursor: 'pointer'}}
+              >
+                <p style={styles.cardLabel}>WIN WALLET</p>
+                <p style={styles.cardAmount}>${Number(userData?.wallets?.win || 0).toFixed(2)}</p>
+                <button onClick={(e) => { e.stopPropagation(); navigate('/withdraw'); }} style={styles.actionBtn}>💸 WITHDRAW</button>
+              </div>
+              
+              <div 
+                onClick={() => navigate('/history', { state: { filterWallet: 'reward' } })}
+                style={{...styles.walletCardGold, cursor: 'pointer'}}
+              >
+                <p style={styles.cardLabel}>REWARD / BONUS</p>
+                <p style={styles.cardAmount}>${Number(userData?.wallets?.reward || 0).toFixed(2)}</p>
+                <span style={{fontSize: '0.7rem', opacity: 0.8}}>CLICK TO VIEW HISTORY</span>
+              </div>
+            </div>
+
+            {/* Bottom Grid for Winners and Ticket Buying */}
             <div style={styles.bottomGrid}>
               <div style={styles.infoBox}><h3>Recent Winners</h3>{realWinners.map((w, i) => (<div key={i} style={styles.winnerRow}><span>{w.username}</span><b>${w.prize}</b></div>))}</div>
+              
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
                 <div style={styles.selectWrapper}>
@@ -186,6 +224,7 @@ const Dashboard = () => {
                 <input type="text" placeholder="000" value={luckyNumber} onChange={(e) => setLuckyNumber(e.target.value.replace(/\D/g, "").slice(0,3))} style={styles.ticketInput} disabled={isButtonDisabled}/>
                 <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ PAUSED" : "BUY TICKET ($0.50)"}</button>
               </div>
+
               <div style={styles.infoBox}><h3>My Tickets</h3><div style={{maxHeight: '260px', overflowY: 'auto'}}>{myTickets.map((t, i) => {
                   let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
                   const d = new Date(t.createdAt);
@@ -198,6 +237,7 @@ const Dashboard = () => {
   );
 };
 
+// --- STYLES ---
 const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 0 50px 0', overflowX: 'hidden', fontFamily: "'Montserrat', sans-serif" },
   slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
@@ -212,13 +252,19 @@ const styles = {
   mainContent: { maxWidth: '1100px', margin: '30px auto', padding: '0 20px' },
   navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' },
   iconBtn: { padding: '8px 15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: 'white', cursor: 'pointer' },
+  
+  // ✅ Hero Section Styles Restored
+  heroSection: { textAlign: 'center', marginBottom: '30px' },
+  heroTitle: { fontSize: '3rem', fontWeight: '900', margin: '0', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' },
+  heroSubtitle: { fontSize: '1.2rem', opacity: 0.9, marginTop: '5px' },
+  
   lifetimeCard: { background: 'linear-gradient(45deg, #ffcc33, #ffb347)', padding: '25px', borderRadius: '24px', textAlign: 'center', marginBottom: '30px', color: '#5e3a00' },
   lifetimeLabel: { fontSize: '1rem', fontWeight: '900' },
   lifetimeAmount: { fontSize: '3.5rem', fontWeight: '900' },
   walletGrid: { display: 'flex', gap: '15px', marginBottom: '40px', flexWrap: 'wrap', justifyContent: 'center' },
-  walletCardPurple: { flex: '1 1 250px', background: 'linear-gradient(45deg, #11998e, #38ef7d)', padding: '20px', borderRadius: '20px', textAlign: 'center' },
-  walletCardOrange: { flex: '1 1 250px', background: 'linear-gradient(45deg, #f093fb, #f5576c)', padding: '20px', borderRadius: '20px', textAlign: 'center' },
-  walletCardGold: { flex: '1 1 250px', background: 'linear-gradient(45deg, #fbc02d, #f57f17)', padding: '20px', borderRadius: '20px', textAlign: 'center' },
+  walletCardPurple: { flex: '1 1 250px', background: 'linear-gradient(45deg, #11998e, #38ef7d)', padding: '20px', borderRadius: '20px', textAlign: 'center', transition: 'transform 0.2s ease-in-out' },
+  walletCardOrange: { flex: '1 1 250px', background: 'linear-gradient(45deg, #f093fb, #f5576c)', padding: '20px', borderRadius: '20px', textAlign: 'center', transition: 'transform 0.2s ease-in-out' },
+  walletCardGold: { flex: '1 1 250px', background: 'linear-gradient(45deg, #fbc02d, #f57f17)', padding: '20px', borderRadius: '20px', textAlign: 'center', transition: 'transform 0.2s ease-in-out' },
   cardLabel: { fontSize: '0.8rem', fontWeight: 'bold' },
   cardAmount: { fontSize: '2rem', fontWeight: '900', margin: '5px 0' },
   actionBtn: { padding: '5px 15px', borderRadius: '8px', border: 'none', background: 'rgba(0,0,0,0.2)', color: 'white', cursor: 'pointer' },
