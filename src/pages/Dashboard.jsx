@@ -10,16 +10,19 @@ const Dashboard = () => {
   const [timeLeft, setTimeLeft] = useState("");
   const [realWinners, setRealWinners] = useState([]);
   
-  // 🎯 Wallet Selection State
-  const [selectedWallet, setSelectedWallet] = useState('deposit'); 
+  // ✅ 1. Naya State: User ki apni tickets save karne ke liye
+  const [myTickets, setMyTickets] = useState([]); 
   
+  const [selectedWallet, setSelectedWallet] = useState('deposit'); 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 🔄 Fresh data fetch karne ke liye function
     const loadUser = () => {
         const savedUser = JSON.parse(localStorage.getItem('user'));
-        if (savedUser) setUserData(savedUser);
+        if (savedUser) {
+            setUserData(savedUser);
+            fetchMyTickets(savedUser._id); // ✅ Dashboard load hoty hi tickets le aao
+        }
     };
     loadUser();
 
@@ -45,10 +48,19 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const submitEntry = async () => {
-    const fee = 0.5; // 🎟️ Ticket Price
+  // ✅ 2. Ticket Fetch Karne ka Function
+  const fetchMyTickets = async (userId) => {
+      try {
+          const res = await api.get(`/api/ticket/my-tickets/${userId}`);
+          setMyTickets(res.data);
+      } catch (err) {
+          console.log("My Tickets fetch error:", err);
+      }
+  };
 
-    // 🛑 1. Validation Logic
+  const submitEntry = async () => {
+    const fee = 0.5; 
+
     if (!userData || !userData.wallets) {
         return toast.error("Session expired! Please login again.");
     }
@@ -67,7 +79,6 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token'); 
 
-      // 🚀 2. API Call with Auth Header
       const res = await api.post('/api/ticket/buy', {
         userId: userData._id,
         ticketNumber: luckyNumber, 
@@ -77,8 +88,6 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` } 
       });
 
-      // ✅ 3. Update UI & LocalStorage with Backend Response
-      // Backend se fresh balance lena best practice hai
       const updatedWallets = { ...userData.wallets };
       updatedWallets[selectedWallet] = res.data.newBalance;
 
@@ -89,6 +98,10 @@ const Dashboard = () => {
       
       toast.success(`Ticket #${luckyNumber} confirmed!`, { id: loadingToast });
       setLuckyNumber(""); 
+      
+      // ✅ 3. Ticket buy hoty hi list automatically refresh karo!
+      fetchMyTickets(userData._id);
+
     } catch (err) {
       console.error("Purchase Error:", err);
       const msg = err.response?.data?.message || "Server error. Try again!";
@@ -96,7 +109,6 @@ const Dashboard = () => {
     }
   };
 
-  // Styles object ko component se bahar rakhna render performance ke liye behtar hota hai
   return (
     <div style={styles.container}>
       <div className="money-rain">
@@ -146,7 +158,10 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* --- BOTTOM SECTION (Grid of 3 items) --- */}
         <div style={styles.bottomGrid}>
+          
+          {/* Recent Winners Box */}
           <div style={styles.infoBox}>
             <h3 style={{color: '#ffcc33', marginBottom: '15px'}}>🏆 Recent Winners</h3>
             {realWinners.length > 0 ? realWinners.map((w, i) => (
@@ -154,6 +169,7 @@ const Dashboard = () => {
             )) : <p style={{opacity: 0.5}}>No recent winners yet.</p>}
           </div>
 
+          {/* Buy Ticket Box */}
           <div style={styles.ticketCard}>
             <h2 style={{marginBottom: '15px', color: '#5e3a00'}}>Pick 3 Digits</h2>
             
@@ -178,6 +194,28 @@ const Dashboard = () => {
             />
             <button onClick={submitEntry} style={styles.playBtn}>BUY TICKET ($0.50)</button>
           </div>
+
+          {/* ✅ NAYA BOX: My Recent Tickets */}
+          <div style={styles.infoBox}>
+            <h3 style={{color: '#00e676', marginBottom: '15px'}}>🎟️ My Tickets</h3>
+            {/* Scrollable div taake zyada tickets hone par page lamba na ho */}
+            <div style={{maxHeight: '260px', overflowY: 'auto', paddingRight: '5px'}}> 
+                {myTickets.length > 0 ? myTickets.map((t, i) => (
+                  <div key={i} style={styles.ticketRow}>
+                     <div>
+                        <span style={styles.tNumber}>#{t.chosenNumbers[0]}</span>
+                        <div style={{fontSize: '0.75rem', opacity: 0.7, marginTop: '2px'}}>
+                            {new Date(t.createdAt || t.raffleDate).toLocaleDateString()}
+                        </div>
+                     </div>
+                     <span style={t.status === 'won' ? styles.badgeWon : t.status === 'lost' ? styles.badgeLost : styles.badgePending}>
+                        {t.status.toUpperCase()}
+                     </span>
+                  </div>
+                )) : <p style={{opacity: 0.5, textAlign: 'center', marginTop: '30px'}}>You haven't bought any tickets yet.</p>}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -188,17 +226,22 @@ const Dashboard = () => {
         }
         .money-note { position: fixed; top: -50px; font-size: 2.5rem; animation: fall 6s linear infinite; z-index: 0; pointer-events: none; }
         .money-rain { position: absolute; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+        
+        /* Scrollbar ko thora khoobsurat banane ke liye */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
       `}</style>
     </div>
   );
 };
 
-// Styles object for better organization
+// Styles object
 const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 20px 50px', position: 'relative', overflowX: 'hidden', fontFamily: "'Montserrat', sans-serif" },
   timerChip: { backgroundColor: '#ff4b2b', color: 'white', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold' },
   mainContent: { maxWidth: '1100px', margin: '30px auto', position: 'relative', zIndex: 1 },
-  navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', alignItems: 'center' },
+  navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' },
   iconBtn: { padding: '8px 15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'rgba(0,0,0,0.3)', color: 'white', cursor: 'pointer' },
   adminLink: { background: 'red', color: 'white', padding: '10px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold' },
   heroSection: { textAlign: 'center', marginBottom: '30px' },
@@ -213,15 +256,22 @@ const styles = {
   cardLabel: { fontSize: '0.9rem', fontWeight: 'bold' },
   cardAmount: { fontSize: '2.5rem', fontWeight: '900', margin: '10px 0' },
   actionBtn: { padding: '8px 15px', borderRadius: '10px', border: 'none', backgroundColor: 'rgba(0,0,0,0.2)', color: 'white', fontWeight: 'bold', cursor: 'pointer' },
-  bottomGrid: { display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap' },
-  infoBox: { flex: 1, minWidth: '300px', background: 'rgba(255,255,255,0.1)', padding: '25px', borderRadius: '24px' },
+  bottomGrid: { display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' },
+  infoBox: { flex: 1, minWidth: '300px', background: 'rgba(255,255,255,0.1)', padding: '25px', borderRadius: '24px', display: 'flex', flexDirection: 'column' },
   winnerRow: { display: 'flex', justifyContent: 'space-between', padding: '12px 15px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', marginBottom: '10px' },
-  ticketCard: { backgroundColor: '#ffcc33', width: '400px', padding: '30px', borderRadius: '30px', textAlign: 'center', border: '5px solid white' },
-  selectWrapper: { display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '15px', textAlign: 'left', width: '85%', margin: '0 auto 15px' },
+  ticketCard: { flex: 1, minWidth: '320px', backgroundColor: '#ffcc33', padding: '30px', borderRadius: '30px', textAlign: 'center', border: '5px solid white' },
+  selectWrapper: { display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '15px', textAlign: 'left', margin: '0 auto 15px' },
   selectLabel: { fontSize: '0.9rem', fontWeight: 'bold', color: '#5e3a00' },
   walletSelect: { padding: '12px', borderRadius: '12px', border: 'none', outline: 'none', fontWeight: 'bold', fontSize: '1rem', color: '#333', cursor: 'pointer' },
   ticketInput: { width: '80%', padding: '15px', borderRadius: '15px', border: 'none', fontSize: '2.5rem', textAlign: 'center', fontWeight: 'bold', marginBottom: '25px' },
-  playBtn: { width: '100%', padding: '18px', borderRadius: '15px', border: 'none', backgroundColor: '#ff4b2b', color: 'white', fontWeight: '900', fontSize: '1.2rem', cursor: 'pointer' }
+  playBtn: { width: '100%', padding: '18px', borderRadius: '15px', border: 'none', backgroundColor: '#ff4b2b', color: 'white', fontWeight: '900', fontSize: '1.2rem', cursor: 'pointer' },
+  
+  // ✅ New styles for My Tickets
+  ticketRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', marginBottom: '10px', borderLeft: '4px solid #00baf2' },
+  tNumber: { fontSize: '1.3rem', fontWeight: '900', color: '#ffcc33', letterSpacing: '2px' },
+  badgeWon: { backgroundColor: 'rgba(0, 230, 118, 0.2)', color: '#00e676', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold' },
+  badgeLost: { backgroundColor: 'rgba(255, 75, 43, 0.2)', color: '#ff4b2b', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold' },
+  badgePending: { backgroundColor: 'rgba(255, 204, 51, 0.2)', color: '#ffcc33', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold' }
 };
 
 export default Dashboard;
