@@ -70,6 +70,7 @@ const Dashboard = () => {
       } catch (err) {}
   };
 
+  // ✅ UPDATED: Ab machine Admin ke set kiye hue numbers check karegi
   const triggerSlotMachine = async () => {
       if (showSlotMachine) return; 
       setShowSlotMachine(true);
@@ -77,11 +78,29 @@ const Dashboard = () => {
       spinAudio.loop = true;
       spinAudio.play().catch(e => console.log("Sound error", e));
 
-      const generatedWinners = [
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
-          Math.floor(Math.random() * 1000).toString().padStart(3, '0')  
-      ];
+      let generatedWinners = [];
+      
+      try {
+          // Admin ke set kiye hue winners mangwana
+          const res = await api.get('/api/admin/current-winners');
+          if (res.data && res.data.isRigged) {
+              generatedWinners = res.data.nextWinners; // Admin chosen numbers
+          } else {
+              // Standard random generation
+              generatedWinners = [
+                  Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
+                  Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
+                  Math.floor(Math.random() * 1000).toString().padStart(3, '0')  
+              ];
+          }
+      } catch (err) {
+          // Error ki soorat mein random numbers
+          generatedWinners = [
+              Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+              Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+              Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+          ];
+      }
 
       await runSpin(1, generatedWinners[0]);
       await runSpin(2, generatedWinners[1]);
@@ -159,13 +178,11 @@ const Dashboard = () => {
           
           <div style={styles.mainContent}>
             
-            {/* Quick Actions Shortcuts */}
             <div style={styles.navBarShortcuts}>
               <button onClick={() => navigate('/history')} style={styles.iconBtn}>📋 History</button>
               <button onClick={() => navigate('/transfer')} style={styles.iconBtn}>💸 Transfer</button>
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
               
-              {/* ✅ NAYA: Admin Button sirf Admin ko nazar aayega */}
               {userData?.role === 'admin' && (
                   <button onClick={() => navigate('/admin/dashboard')} style={{...styles.iconBtn, backgroundColor: '#ff4b2b', borderColor: '#ff4b2b', color: 'white', fontWeight: 'bold'}}>
                       👑 Admin
@@ -173,19 +190,16 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* ✅ HERO SECTION (Username & Welcome Message restored here) */}
             <div style={styles.heroSection}>
               <h1 style={styles.heroTitle}>YOU ARE LUCKY!</h1>
               <p style={styles.heroSubtitle}>Small Entry. Big WIN, {userData?.username || 'User'}!</p>
             </div>
 
-            {/* Lifetime Earning Card */}
             <div style={styles.lifetimeCard}>
               <p style={styles.lifetimeLabel}>🏆 TOTAL EARNINGS</p>
               <h1 style={styles.lifetimeAmount}>${Number(userData?.totalEarning || 0).toFixed(2)}</h1>
             </div>
             
-            {/* ✅ WALLET GRID (Ab Clickable hain aur History filter karte hain) */}
             <div style={styles.walletGrid}>
               <div 
                 onClick={() => navigate('/history', { state: { filterWallet: 'deposit' } })}
@@ -215,7 +229,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Bottom Grid for Winners and Ticket Buying */}
             <div style={styles.bottomGrid}>
               <div style={styles.infoBox}><h3>Recent Winners</h3>{realWinners.map((w, i) => (<div key={i} style={styles.winnerRow}><span>{w.username}</span><b>${w.prize}</b></div>))}</div>
               
@@ -259,12 +272,9 @@ const styles = {
   mainContent: { maxWidth: '1100px', margin: '30px auto', padding: '0 20px' },
   navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' },
   iconBtn: { padding: '8px 15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: 'white', cursor: 'pointer' },
-  
-  // ✅ Hero Section Styles Restored
   heroSection: { textAlign: 'center', marginBottom: '30px' },
   heroTitle: { fontSize: '3rem', fontWeight: '900', margin: '0', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' },
   heroSubtitle: { fontSize: '1.2rem', opacity: 0.9, marginTop: '5px' },
-  
   lifetimeCard: { background: 'linear-gradient(45deg, #ffcc33, #ffb347)', padding: '25px', borderRadius: '24px', textAlign: 'center', marginBottom: '30px', color: '#5e3a00' },
   lifetimeLabel: { fontSize: '1rem', fontWeight: '900' },
   lifetimeAmount: { fontSize: '3.5rem', fontWeight: '900' },
