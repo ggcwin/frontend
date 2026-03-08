@@ -70,7 +70,6 @@ const Dashboard = () => {
       } catch (err) {}
   };
 
-  // ✅ UPDATED: Ab machine Admin ke set kiye hue numbers check karegi
   const triggerSlotMachine = async () => {
       if (showSlotMachine) return; 
       setShowSlotMachine(true);
@@ -79,14 +78,11 @@ const Dashboard = () => {
       spinAudio.play().catch(e => console.log("Sound error", e));
 
       let generatedWinners = [];
-      
       try {
-          // Admin ke set kiye hue winners mangwana
           const res = await api.get('/api/admin/current-winners');
           if (res.data && res.data.isRigged) {
-              generatedWinners = res.data.nextWinners; // Admin chosen numbers
+              generatedWinners = res.data.nextWinners; 
           } else {
-              // Standard random generation
               generatedWinners = [
                   Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
                   Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
@@ -94,7 +90,6 @@ const Dashboard = () => {
               ];
           }
       } catch (err) {
-          // Error ki soorat mein random numbers
           generatedWinners = [
               Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
               Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
@@ -177,16 +172,12 @@ const Dashboard = () => {
           <div style={{textAlign: 'center', marginTop: '10px'}}><span style={styles.timerChip}>Next Draw: {timeLeft}</span></div>
           
           <div style={styles.mainContent}>
-            
             <div style={styles.navBarShortcuts}>
               <button onClick={() => navigate('/history')} style={styles.iconBtn}>📋 History</button>
               <button onClick={() => navigate('/transfer')} style={styles.iconBtn}>💸 Transfer</button>
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
-              
               {userData?.role === 'admin' && (
-                  <button onClick={() => navigate('/admin/dashboard')} style={{...styles.iconBtn, backgroundColor: '#ff4b2b', borderColor: '#ff4b2b', color: 'white', fontWeight: 'bold'}}>
-                      👑 Admin
-                  </button>
+                  <button onClick={() => navigate('/admin/dashboard')} style={{...styles.iconBtn, backgroundColor: '#ff4b2b', borderColor: '#ff4b2b', color: 'white', fontWeight: 'bold'}}>👑 Admin</button>
               )}
             </div>
 
@@ -201,28 +192,19 @@ const Dashboard = () => {
             </div>
             
             <div style={styles.walletGrid}>
-              <div 
-                onClick={() => navigate('/history', { state: { filterWallet: 'deposit' } })}
-                style={{...styles.walletCardPurple, cursor: 'pointer'}}
-              >
+              <div onClick={() => navigate('/history', { state: { filterWallet: 'deposit' } })} style={{...styles.walletCardPurple, cursor: 'pointer'}}>
                 <p style={styles.cardLabel}>PLAY BALANCE</p>
                 <p style={styles.cardAmount}>${Number(userData?.wallets?.deposit || 0).toFixed(2)}</p>
                 <button onClick={(e) => { e.stopPropagation(); navigate('/deposit'); }} style={styles.actionBtn}>➕ DEPOSIT</button>
               </div>
 
-              <div 
-                onClick={() => navigate('/history', { state: { filterWallet: 'win' } })}
-                style={{...styles.walletCardOrange, cursor: 'pointer'}}
-              >
+              <div onClick={() => navigate('/history', { state: { filterWallet: 'win' } })} style={{...styles.walletCardOrange, cursor: 'pointer'}}>
                 <p style={styles.cardLabel}>WIN WALLET</p>
                 <p style={styles.cardAmount}>${Number(userData?.wallets?.win || 0).toFixed(2)}</p>
                 <button onClick={(e) => { e.stopPropagation(); navigate('/withdraw'); }} style={styles.actionBtn}>💸 WITHDRAW</button>
               </div>
               
-              <div 
-                onClick={() => navigate('/history', { state: { filterWallet: 'reward' } })}
-                style={{...styles.walletCardGold, cursor: 'pointer'}}
-              >
+              <div onClick={() => navigate('/history', { state: { filterWallet: 'reward' } })} style={{...styles.walletCardGold, cursor: 'pointer'}}>
                 <p style={styles.cardLabel}>REWARD / BONUS</p>
                 <p style={styles.cardAmount}>${Number(userData?.wallets?.reward || 0).toFixed(2)}</p>
                 <span style={{fontSize: '0.7rem', opacity: 0.8}}>CLICK TO VIEW HISTORY</span>
@@ -231,7 +213,6 @@ const Dashboard = () => {
 
             <div style={styles.bottomGrid}>
               <div style={styles.infoBox}><h3>Recent Winners</h3>{realWinners.map((w, i) => (<div key={i} style={styles.winnerRow}><span>{w.username}</span><b>${w.prize}</b></div>))}</div>
-              
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
                 <div style={styles.selectWrapper}>
@@ -244,7 +225,6 @@ const Dashboard = () => {
                 <input type="text" placeholder="000" value={luckyNumber} onChange={(e) => setLuckyNumber(e.target.value.replace(/\D/g, "").slice(0,3))} style={styles.ticketInput} disabled={isButtonDisabled}/>
                 <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ PAUSED" : "BUY TICKET ($0.50)"}</button>
               </div>
-
               <div style={styles.infoBox}><h3>My Tickets</h3><div style={{maxHeight: '260px', overflowY: 'auto'}}>{myTickets.map((t, i) => {
                   let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
                   const d = new Date(t.createdAt);
@@ -257,7 +237,6 @@ const Dashboard = () => {
   );
 };
 
-// --- STYLES ---
 const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 0 50px 0', overflowX: 'hidden', fontFamily: "'Montserrat', sans-serif" },
   slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
