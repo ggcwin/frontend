@@ -33,26 +33,46 @@ const Dashboard = () => {
     loadUser();
     fetchWinners();
 
+    // 🕒 BULLETPROOF PKT TIMER LOGIC
     const timer = setInterval(() => {
-      const nowString = new Date().toLocaleString("en-US", { timeZone: "Asia/Karachi" });
-      const nowPkt = new Date(nowString);
-      const drawTimePkt = new Date(nowString);
-      drawTimePkt.setHours(23, 0, 0, 0); 
-      if (nowPkt > drawTimePkt) drawTimePkt.setDate(drawTimePkt.getDate() + 1);
-      const diff = drawTimePkt - nowPkt;
+      const now = new Date();
+      
+      // Get exact current time in PKT (UTC+5)
+      const pktString = now.toLocaleString("en-US", { timeZone: "Asia/Karachi" });
+      const currentPktTime = new Date(pktString);
+      
+      // Target time: Today at 11:00 PM PKT
+      const targetPktTime = new Date(pktString);
+      targetPktTime.setHours(23, 0, 0, 0);
 
-      if (diff <= 180000 && diff > 0) setIsButtonDisabled(true);
-      else setIsButtonDisabled(false);
+      // Agar PKT ke 11 baj chuke hain, toh target agla din hoga
+      if (currentPktTime.getTime() >= targetPktTime.getTime()) {
+          targetPktTime.setDate(targetPktTime.getDate() + 1);
+      }
 
-      if (nowPkt.getHours() === 23 && nowPkt.getMinutes() === 0 && nowPkt.getSeconds() === 0) {
+      // Exact millisecond difference
+      const diff = targetPktTime.getTime() - currentPktTime.getTime();
+
+      // Agar draw mein 3 minute (180,000 ms) se kam time hai, toh button disable kardo
+      if (diff <= 180000 && diff > 0) {
+          setIsButtonDisabled(true);
+      } else {
+          setIsButtonDisabled(false);
+      }
+
+      // Agar theek 11:00:00 baje hain, toh slot machine chalao
+      if (currentPktTime.getHours() === 23 && currentPktTime.getMinutes() === 0 && currentPktTime.getSeconds() === 0) {
           triggerSlotMachine();
       }
 
-      const hh = Math.floor(diff / 3600000).toString().padStart(2, '0');
-      const mm = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-      const ss = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+      // Timer Display Formatting
+      const hh = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+      const mm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+      const ss = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+      
       setTimeLeft(`${hh}:${mm}:${ss}`);
     }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
@@ -212,7 +232,6 @@ const Dashboard = () => {
             </div>
 
             <div style={styles.bottomGrid}>
-              <div style={styles.infoBox}><h3>Recent Winners</h3>{realWinners.map((w, i) => (<div key={i} style={styles.winnerRow}><span>{w.username}</span><b>${w.prize}</b></div>))}</div>
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
                 <div style={styles.selectWrapper}>
@@ -223,13 +242,37 @@ const Dashboard = () => {
                     </select>
                 </div>
                 <input type="text" placeholder="000" value={luckyNumber} onChange={(e) => setLuckyNumber(e.target.value.replace(/\D/g, "").slice(0,3))} style={styles.ticketInput} disabled={isButtonDisabled}/>
-                <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ PAUSED" : "BUY TICKET ($0.50)"}</button>
+                <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ PAUSED (Draw Time)" : "BUY TICKET ($0.50)"}</button>
               </div>
-              <div style={styles.infoBox}><h3>My Tickets</h3><div style={{maxHeight: '260px', overflowY: 'auto'}}>{myTickets.map((t, i) => {
-                  let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
-                  const d = new Date(t.createdAt);
-                  return (<div key={i} style={styles.ticketRow}><div><span style={{...styles.tNumber, color: numC}}>#{t.chosenNumbers[0]}</span><div style={{fontSize: '0.7rem', opacity: 0.7}}>{d.toLocaleDateString()} {d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div></div><span>{t.status.toUpperCase()}</span></div>);
-              })}</div></div>
+              
+              <div style={styles.infoBox}>
+                <h3>My Tickets</h3>
+                <div style={{maxHeight: '260px', overflowY: 'auto'}}>
+                    {myTickets.length > 0 ? myTickets.map((t, i) => {
+                        let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
+                        const d = new Date(t.createdAt);
+                        return (
+                        <div key={i} style={styles.ticketRow}>
+                            <div>
+                                <span style={{...styles.tNumber, color: numC}}>#{t.chosenNumbers[0]}</span>
+                                <div style={{fontSize: '0.7rem', opacity: 0.7}}>{d.toLocaleDateString()} {d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                            </div>
+                            <span>{t.status.toUpperCase()}</span>
+                        </div>
+                        );
+                    }) : <p style={{opacity: 0.7, textAlign: 'center', marginTop: '20px'}}>No tickets bought yet.</p>}
+                </div>
+              </div>
+              
+              <div style={styles.infoBox}>
+                  <h3>Recent Winners</h3>
+                  {realWinners.length > 0 ? realWinners.map((w, i) => (
+                      <div key={i} style={styles.winnerRow}>
+                          <span>{w.username}</span>
+                          <b style={{color: '#00e676'}}>${w.prize}</b>
+                      </div>
+                  )) : <p style={{opacity: 0.7, textAlign: 'center', marginTop: '20px'}}>Waiting for today's draw...</p>}
+              </div>
             </div>
           </div>
       </div>
@@ -249,7 +292,7 @@ const styles = {
   resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' },
   timerChip: { backgroundColor: '#ff4b2b', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold' },
   mainContent: { maxWidth: '1100px', margin: '30px auto', padding: '0 20px' },
-  navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' },
+  navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
   iconBtn: { padding: '8px 15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: 'white', cursor: 'pointer' },
   heroSection: { textAlign: 'center', marginBottom: '30px' },
   heroTitle: { fontSize: '3rem', fontWeight: '900', margin: '0', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' },
@@ -263,15 +306,15 @@ const styles = {
   walletCardGold: { flex: '1 1 250px', background: 'linear-gradient(45deg, #fbc02d, #f57f17)', padding: '20px', borderRadius: '20px', textAlign: 'center', transition: 'transform 0.2s ease-in-out' },
   cardLabel: { fontSize: '0.8rem', fontWeight: 'bold' },
   cardAmount: { fontSize: '2rem', fontWeight: '900', margin: '5px 0' },
-  actionBtn: { padding: '5px 15px', borderRadius: '8px', border: 'none', background: 'rgba(0,0,0,0.2)', color: 'white', cursor: 'pointer' },
+  actionBtn: { padding: '5px 15px', borderRadius: '8px', border: 'none', background: 'rgba(0,0,0,0.2)', color: 'white', cursor: 'pointer', marginTop: '10px' },
   bottomGrid: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
   infoBox: { flex: 1, minWidth: '300px', background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '20px' },
   winnerRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', marginBottom: '5px' },
   ticketCard: { flex: 1, minWidth: '320px', backgroundColor: '#ffcc33', padding: '25px', borderRadius: '25px', textAlign: 'center', color: '#5e3a00' },
   selectWrapper: { marginBottom: '15px' },
-  walletSelect: { padding: '10px', borderRadius: '10px', width: '100%' },
-  ticketInput: { width: '80%', padding: '10px', borderRadius: '10px', fontSize: '2rem', textAlign: 'center', marginBottom: '20px' },
-  playBtn: { width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '900', color: 'white', cursor: 'pointer' },
+  walletSelect: { padding: '10px', borderRadius: '10px', width: '100%', fontSize: '1.1rem' },
+  ticketInput: { width: '80%', padding: '15px', borderRadius: '10px', fontSize: '2.5rem', textAlign: 'center', marginBottom: '20px', fontWeight: '900', border: '2px solid #5e3a00' },
+  playBtn: { width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '900', color: 'white', cursor: 'pointer', fontSize: '1.1rem' },
   ticketRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', marginBottom: '5px' },
   tNumber: { fontSize: '1.2rem', fontWeight: '900' }
 };
