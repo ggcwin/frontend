@@ -14,7 +14,6 @@ const Dashboard = () => {
   const [selectedWallet, setSelectedWallet] = useState('deposit'); 
   const [isButtonDisabled, setIsButtonDisabled] = useState(false); 
   
-  // ✅ NAYA: Voucher state add kar diya gaya hai
   const [voucherCode, setVoucherCode] = useState("");
   
   const [showSlotMachine, setShowSlotMachine] = useState(false);
@@ -36,7 +35,6 @@ const Dashboard = () => {
     loadUser();
     fetchWinners();
 
-    // 🕒 BULLETPROOF PKT TIMER LOGIC
     const timer = setInterval(() => {
       const now = new Date();
       
@@ -141,7 +139,6 @@ const Dashboard = () => {
       });
   };
 
-  // ✅ NAYA: Voucher Redeem karne ka function
   const handleRedeemVoucher = async () => {
     if (!voucherCode.trim()) return toast.error("Please enter a voucher code!");
     
@@ -164,11 +161,11 @@ const Dashboard = () => {
         setUserData(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
-        toast.success(`🎉 Voucher Redeemed! $${res.data.amount} added to your wallet!`, { id: loadingToast });
+        toast.success(`🎉 Voucher Redeemed! $${res.data.amount} added!`, { id: loadingToast });
         setVoucherCode(""); 
         
     } catch (err) {
-        toast.error(err.response?.data?.message || "Invalid or Expired Voucher!", { id: loadingToast });
+        toast.error(err.response?.data?.message || "Invalid Voucher!", { id: loadingToast });
     }
   };
 
@@ -195,6 +192,46 @@ const Dashboard = () => {
     } catch (err) {
       toast.error("Error occurred!", { id: loadingToast });
     }
+  };
+
+  // ✅ NAYA: Auto-Wallet Checking 'Try Again' Logic
+  const handleTryAgain = async (ticketNumber) => {
+      if (isButtonDisabled) return toast.error("⏳ Draw in progress!");
+      const fee = 0.5;
+      if (!userData?.wallets) return toast.error("Session expired!");
+
+      // System khud wallet dhoonde ga jis mein $0.50 hain
+      let walletToUse = null;
+      if (userData.wallets.deposit >= fee) {
+          walletToUse = 'deposit';
+      } else if (userData.wallets.win >= fee) {
+          walletToUse = 'win';
+      } else if (userData.wallets.reward >= fee) {
+          walletToUse = 'reward';
+      }
+
+      if (!walletToUse) return toast.error("Insufficient Balance in all wallets!");
+
+      const loadingToast = toast.loading(`Auto-buying #${ticketNumber}...`);
+      try {
+          const token = localStorage.getItem('token');
+          const res = await api.post('/api/ticket/buy', {
+              userId: userData._id, 
+              ticketNumber: ticketNumber, 
+              walletType: walletToUse, 
+              price: fee
+          }, { headers: { Authorization: `Bearer ${token}` } });
+
+          // Jo wallet use hua, uska balance update karein
+          const updatedUser = { ...userData, wallets: { ...userData.wallets, [walletToUse]: res.data.newBalance } };
+          setUserData(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          toast.success(`Bought #${ticketNumber} from ${walletToUse.toUpperCase()}!`, { id: loadingToast });
+          fetchMyTickets(userData._id); // List foran update karein
+      } catch (err) {
+          toast.error("Error buying ticket!", { id: loadingToast });
+      }
   };
 
   return (
@@ -258,12 +295,11 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* ✅ NAYA: VOUCHER REDEEM SECTION */}
             <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '20px', borderRadius: '20px', display: 'flex', gap: '15px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '30px', border: '1px dashed #ffcc33' }}>
                 <h3 style={{ color: '#ffcc33', margin: 0, fontSize: '1.2rem' }}>Got a Promo Code?</h3>
                 <input 
                     type="text" 
-                    placeholder="ENTER VOUCHER CODE" 
+                    placeholder="ENTER VOUCHER" 
                     value={voucherCode} 
                     onChange={(e) => setVoucherCode(e.target.value.toUpperCase())} 
                     style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', outline: 'none', fontSize: '1rem', fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase', minWidth: '200px' }} 
@@ -272,7 +308,7 @@ const Dashboard = () => {
                     onClick={handleRedeemVoucher} 
                     style={{ padding: '12px 25px', borderRadius: '10px', border: 'none', backgroundColor: '#00e676', color: '#000', fontWeight: '900', cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 15px rgba(0, 230, 118, 0.3)' }}
                 >
-                    REDEEM NOW
+                    REDEEM
                 </button>
             </div>
 
@@ -294,7 +330,7 @@ const Dashboard = () => {
                 <h3>My Tickets</h3>
                 <div style={{maxHeight: '300px', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px'}}>
                     {myTickets.length > 0 ? myTickets.map((t, i) => {
-                        let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
+                        let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' || t.status === 'expired' ? '#ff4b2b' : '#ffcc33';
                         const d = new Date(t.createdAt);
                         return (
                         <div key={i} style={styles.ticketRow}>
@@ -302,7 +338,19 @@ const Dashboard = () => {
                                 <span style={{...styles.tNumber, color: numC}}>#{t.chosenNumbers[0]}</span>
                                 <div style={{fontSize: '0.7rem', opacity: 0.7}}>{d.toLocaleDateString()} {d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                             </div>
-                            <span>{t.status.toUpperCase()}</span>
+                            
+                            {/* ✅ NAYA: LOST ki jagah Try Again Button */}
+                            {t.status === 'lost' || t.status === 'expired' ? (
+                                <button 
+                                    onClick={() => handleTryAgain(t.chosenNumbers[0])}
+                                    disabled={isButtonDisabled}
+                                    style={{...styles.tryAgainBtn, opacity: isButtonDisabled ? 0.5 : 1}}
+                                >
+                                    ↻ Try Again
+                                </button>
+                            ) : (
+                                <span style={{ fontWeight: 'bold', color: numC }}>{t.status.toUpperCase()}</span>
+                            )}
                         </div>
                         );
                     }) : <p style={{opacity: 0.7, textAlign: 'center', marginTop: '20px'}}>No tickets bought yet.</p>}
@@ -360,8 +408,11 @@ const styles = {
   walletSelect: { padding: '10px', borderRadius: '10px', width: '100%', fontSize: '1.1rem' },
   ticketInput: { width: '80%', padding: '15px', borderRadius: '10px', fontSize: '2.5rem', textAlign: 'center', marginBottom: '20px', fontWeight: '900', border: '2px solid #5e3a00' },
   playBtn: { width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '900', color: 'white', cursor: 'pointer', fontSize: '1.1rem' },
-  ticketRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', marginBottom: '5px' },
-  tNumber: { fontSize: '1.2rem', fontWeight: '900' }
+  ticketRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', marginBottom: '5px' },
+  tNumber: { fontSize: '1.2rem', fontWeight: '900' },
+  
+  // ✅ NAYA: Try Again Button ka Style
+  tryAgainBtn: { padding: '6px 12px', borderRadius: '8px', border: '1px solid #ff4b2b', backgroundColor: 'rgba(255, 75, 43, 0.1)', color: '#ffcc33', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }
 };
 
 export default Dashboard;
