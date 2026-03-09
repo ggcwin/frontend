@@ -35,31 +35,52 @@ const Dashboard = () => {
     loadUser();
     fetchWinners();
 
+    // 🕒 100% UNIVERSAL PKT TIMER LOGIC (Fix for Dubai & other countries)
     const timer = setInterval(() => {
       const now = new Date();
       
-      const pktString = now.toLocaleString("en-US", { timeZone: "Asia/Karachi" });
-      const currentPktTime = new Date(pktString);
-      
-      const targetPktTime = new Date(pktString);
-      targetPktTime.setHours(23, 0, 0, 0);
+      // Exact PKT time elements nikalna baghair user ki location dekhe
+      const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Karachi',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hourCycle: 'h23'
+      });
 
-      if (currentPktTime.getTime() >= targetPktTime.getTime()) {
-          targetPktTime.setDate(targetPktTime.getDate() + 1);
+      const parts = formatter.formatToParts(now);
+      const getPart = (type) => parts.find(p => p.type === type).value;
+
+      const year = parseInt(getPart('year'));
+      const month = parseInt(getPart('month')) - 1; // 0-indexed for Date
+      const day = parseInt(getPart('day'));
+      const hour = parseInt(getPart('hour'));
+      const minute = parseInt(getPart('minute'));
+      const second = parseInt(getPart('second'));
+
+      // 11:00 PM PKT = 18:00 UTC (Absolute Target Time)
+      let targetUTC = new Date(Date.UTC(year, month, day, 18, 0, 0));
+
+      // Agar Pakistan mein raat ke 11 baj chuke hain (hour >= 23), toh target agla din hoga
+      if (hour >= 23) {
+          targetUTC.setUTCDate(targetUTC.getUTCDate() + 1);
       }
 
-      const diff = targetPktTime.getTime() - currentPktTime.getTime();
+      // Exact millisecond difference jo poori dunya mein same hoga
+      const diff = targetUTC.getTime() - now.getTime();
 
+      // Draw se 3 minute (180,000 ms) pehle button disable karo
       if (diff <= 180000 && diff > 0) {
           setIsButtonDisabled(true);
       } else {
           setIsButtonDisabled(false);
       }
 
-      if (currentPktTime.getHours() === 23 && currentPktTime.getMinutes() === 0 && currentPktTime.getSeconds() === 0) {
+      // Theek 11:00:00 PM PKT baje dunya bhar mein slot machine chalao
+      if (hour === 23 && minute === 0 && second === 0) {
           triggerSlotMachine();
       }
 
+      // Display Formatting
       const hh = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
       const mm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
       const ss = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
@@ -308,7 +329,6 @@ const Dashboard = () => {
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
                 <div style={styles.selectWrapper}>
-                    {/* ✅ NAYA: Dropdown mein Live Balance Show Hoga */}
                     <select value={selectedWallet} onChange={(e) => setSelectedWallet(e.target.value)} style={styles.walletSelect} disabled={isButtonDisabled}>
                         <option value="deposit">Play Balance (${Number(userData?.wallets?.deposit || 0).toFixed(2)})</option>
                         <option value="win">Win Wallet (${Number(userData?.wallets?.win || 0).toFixed(2)})</option>
