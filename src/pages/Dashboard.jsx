@@ -14,6 +14,9 @@ const Dashboard = () => {
   const [selectedWallet, setSelectedWallet] = useState('deposit'); 
   const [isButtonDisabled, setIsButtonDisabled] = useState(false); 
   
+  // ✅ NAYA: Voucher state add kar diya gaya hai
+  const [voucherCode, setVoucherCode] = useState("");
+  
   const [showSlotMachine, setShowSlotMachine] = useState(false);
   const [drawStage, setDrawStage] = useState(0); 
   const [slotDigits, setSlotDigits] = useState(['0', '0', '0']);
@@ -37,35 +40,28 @@ const Dashboard = () => {
     const timer = setInterval(() => {
       const now = new Date();
       
-      // Get exact current time in PKT (UTC+5)
       const pktString = now.toLocaleString("en-US", { timeZone: "Asia/Karachi" });
       const currentPktTime = new Date(pktString);
       
-      // Target time: Today at 11:00 PM PKT
       const targetPktTime = new Date(pktString);
       targetPktTime.setHours(23, 0, 0, 0);
 
-      // Agar PKT ke 11 baj chuke hain, toh target agla din hoga
       if (currentPktTime.getTime() >= targetPktTime.getTime()) {
           targetPktTime.setDate(targetPktTime.getDate() + 1);
       }
 
-      // Exact millisecond difference
       const diff = targetPktTime.getTime() - currentPktTime.getTime();
 
-      // Agar draw mein 3 minute (180,000 ms) se kam time hai, toh button disable kardo
       if (diff <= 180000 && diff > 0) {
           setIsButtonDisabled(true);
       } else {
           setIsButtonDisabled(false);
       }
 
-      // Agar theek 11:00:00 baje hain, toh slot machine chalao
       if (currentPktTime.getHours() === 23 && currentPktTime.getMinutes() === 0 && currentPktTime.getSeconds() === 0) {
           triggerSlotMachine();
       }
 
-      // Timer Display Formatting
       const hh = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
       const mm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
       const ss = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
@@ -143,6 +139,37 @@ const Dashboard = () => {
               setTimeout(() => resolve(), 2000);
           }, 10000); 
       });
+  };
+
+  // ✅ NAYA: Voucher Redeem karne ka function
+  const handleRedeemVoucher = async () => {
+    if (!voucherCode.trim()) return toast.error("Please enter a voucher code!");
+    
+    const loadingToast = toast.loading("Verifying Voucher...");
+    try {
+        const token = localStorage.getItem('token');
+        const res = await api.post('/api/voucher/redeem', {
+            userId: userData._id,
+            code: voucherCode.trim()
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        const updatedUser = { 
+            ...userData, 
+            wallets: {
+                ...userData.wallets,
+                [res.data.walletType || 'reward']: res.data.newBalance
+            } 
+        };
+        
+        setUserData(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success(`🎉 Voucher Redeemed! $${res.data.amount} added to your wallet!`, { id: loadingToast });
+        setVoucherCode(""); 
+        
+    } catch (err) {
+        toast.error(err.response?.data?.message || "Invalid or Expired Voucher!", { id: loadingToast });
+    }
   };
 
   const submitEntry = async () => {
@@ -231,6 +258,24 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* ✅ NAYA: VOUCHER REDEEM SECTION */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '20px', borderRadius: '20px', display: 'flex', gap: '15px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '30px', border: '1px dashed #ffcc33' }}>
+                <h3 style={{ color: '#ffcc33', margin: 0, fontSize: '1.2rem' }}>Got a Promo Code?</h3>
+                <input 
+                    type="text" 
+                    placeholder="ENTER VOUCHER CODE" 
+                    value={voucherCode} 
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())} 
+                    style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', outline: 'none', fontSize: '1rem', fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase', minWidth: '200px' }} 
+                />
+                <button 
+                    onClick={handleRedeemVoucher} 
+                    style={{ padding: '12px 25px', borderRadius: '10px', border: 'none', backgroundColor: '#00e676', color: '#000', fontWeight: '900', cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 15px rgba(0, 230, 118, 0.3)' }}
+                >
+                    REDEEM NOW
+                </button>
+            </div>
+
             <div style={styles.bottomGrid}>
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
@@ -247,7 +292,6 @@ const Dashboard = () => {
               
               <div style={styles.infoBox}>
                 <h3>My Tickets</h3>
-                {/* ✅ YAHAN FIX KIYA GAYA HAI */}
                 <div style={{maxHeight: '300px', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px'}}>
                     {myTickets.length > 0 ? myTickets.map((t, i) => {
                         let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
