@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; // ✅ axios ki jagah api import kiya
+import api from '../api'; 
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
@@ -21,7 +21,7 @@ const Deposit = () => {
 
     const fetchSettings = async () => {
       try {
-        const res = await api.get('/api/settings'); // ✅ Lamba link khatam
+        const res = await api.get('/api/settings'); 
         if (res.data) setSettings(res.data);
       } catch (err) {
         console.log("Failed to load live settings");
@@ -36,8 +36,8 @@ const Deposit = () => {
 
     const loading = toast.loading("Verifying voucher...");
     try {
-      const res = await api.post('/api/voucher/redeem', { userId: userData?._id, code: voucher }); // ✅ Lamba link khatam
-      const updatedUser = { ...userData, wallets: { ...userData.wallets, deposit: res.data.newBalance } }; // ⚠️ Bonus/Reward ki jagah Deposit wallet mein load kiya
+      const res = await api.post('/api/voucher/redeem', { userId: userData?._id, code: voucher }); 
+      const updatedUser = { ...userData, wallets: { ...userData.wallets, deposit: res.data.newBalance } }; 
       setUserData(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       toast.success(res.data.message, { id: loading });
@@ -52,6 +52,14 @@ const Deposit = () => {
     if (!text || text === "Not Available") return toast.error("Address not set yet!");
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard!");
+  };
+
+  // ✅ Telegram Link open karne ka function
+  const openTelegram = () => {
+    if (!settings.telegramLink || settings.telegramLink === "Not Available") {
+        return toast.error("Telegram support link not available right now.");
+    }
+    window.open(settings.telegramLink, '_blank');
   };
 
   return (
@@ -112,6 +120,25 @@ const Deposit = () => {
             <p style={{...styles.phone, color: '#ff4b2b'}}>{settings.jazzcashNumber}</p>
           </div>
         </div>
+
+        {/* ✅ NAYA: TELEGRAM SUPPORT SECTION */}
+        <div 
+          onClick={openTelegram}
+          style={{
+              ...styles.card, 
+              border: '2px dashed #0088cc', 
+              cursor: 'pointer', 
+              background: 'linear-gradient(135deg, rgba(0, 136, 204, 0.15) 0%, rgba(0, 0, 0, 0.4) 100%)',
+              marginTop: '30px',
+              transition: 'transform 0.2s'
+          }}
+        >
+          <h3 style={{...styles.cardTitle, color: '#00baf2', marginBottom: '8px', fontSize: '1.5rem'}}>💬 Send Proof on Telegram</h3>
+          <p style={{fontSize: '0.95rem', color: '#fff', opacity: 0.9, margin: 0, fontWeight: 'bold'}}>
+            Click here to send payment screenshot to Admin
+          </p>
+        </div>
+
       </div>
     </div>
   );
