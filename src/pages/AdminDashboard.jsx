@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; // Custom api instance for better security
+import api from '../api'; 
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
-    totalUsers: 0, totalSales: 0, totalWithdrawn: 0, pendingWithdrawalsCount: 0
+    totalUsers: 0, totalSales: 0, totalWithdrawn: 0, pendingWithdrawalsCount: 0, totalDeposit: 0
   });
   const [users, setUsers] = useState([]); 
   
-  // Balance Update Modal ke states
   const [showModal, setShowModal] = useState(false);
   const [targetUser, setTargetUser] = useState(null);
   const [balanceForm, setBalanceForm] = useState({ amount: '', walletType: 'deposit' });
@@ -18,11 +17,9 @@ const AdminDashboard = () => {
 
   const fetchStatsAndUsers = async () => {
     try {
-      // 1. Fetch Stats
       const statsRes = await api.get('/api/admin/stats');
       setStats(statsRes.data);
 
-      // 2. Fetch All Users
       const usersRes = await api.get('/api/admin/users');
       setUsers(usersRes.data);
     } catch (err) { 
@@ -34,14 +31,12 @@ const AdminDashboard = () => {
     fetchStatsAndUsers();
   }, []);
 
-  // Modal Kholne ka function
   const openBalanceModal = (user) => {
     setTargetUser(user);
     setBalanceForm({ amount: '', walletType: 'deposit' });
     setShowModal(true);
   };
 
-  // Balance Add karne ka API call
   const handleUpdateBalance = async (e) => {
     e.preventDefault();
     if (!balanceForm.amount || balanceForm.amount <= 0) return toast.error("Enter valid amount");
@@ -56,7 +51,7 @@ const AdminDashboard = () => {
       
       toast.success("Balance Updated Successfully!", { id: loading });
       setShowModal(false);
-      fetchStatsAndUsers(); // List ko dobara refresh karo taake naya balance nazar aaye
+      fetchStatsAndUsers(); 
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update balance. Backend route check karein!", { id: loading });
     }
@@ -78,14 +73,23 @@ const AdminDashboard = () => {
             <p style={styles.label}>TOTAL USERS</p>
             <h2 style={styles.value}>{stats.totalUsers}</h2>
           </div>
+          
           <div style={{...styles.statCard, borderTop: '5px solid #00e676'}}>
             <p style={styles.label}>TOTAL SALES</p>
-            <h2 style={styles.value}>${stats.totalSales}</h2>
+            <h2 style={{...styles.value, color: '#00e676'}}>${stats.totalSales}</h2>
           </div>
+
+          {/* ✅ NAYA: TOTAL DEPOSIT BOX (External Funds only) */}
+          <div style={{...styles.statCard, borderTop: '5px solid #f093fb'}}>
+            <p style={styles.label}>TOTAL DEPOSIT</p>
+            <h2 style={{...styles.value, color: '#f093fb'}}>${stats.totalDeposit}</h2>
+          </div>
+
           <div style={{...styles.statCard, borderTop: '5px solid #ff4b2b'}}>
             <p style={styles.label}>TOTAL WITHDRAWN</p>
             <h2 style={styles.value}>${stats.totalWithdrawn}</h2>
           </div>
+          
           <div style={{...styles.statCard, borderTop: '5px solid #ffcc33'}}>
             <p style={styles.label}>PENDING PAYS</p>
             <h2 style={{...styles.value, color: '#ffcc33'}}>{stats.pendingWithdrawalsCount}</h2>
@@ -97,7 +101,6 @@ const AdminDashboard = () => {
         <div style={styles.actionGrid}>
           <button onClick={() => navigate('/admin/deposits')} style={{...styles.actionBtn, borderColor: '#00e676'}}>💰 Pending Deposits</button>
           
-          {/* ✅ Ye button Admin Draw page par le kar jaye ga jahan "Number Lock" hai */}
           <button 
             onClick={() => navigate('/admin/draw')} 
             style={{...styles.actionBtn, borderColor: '#ff4b2b', backgroundColor: 'rgba(255, 75, 43, 0.1)', color: '#ff4b2b', border: '2px solid #ff4b2b'}}
@@ -143,7 +146,6 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
-
       </div>
 
       {/* --- BALANCE UPDATE MODAL --- */}
@@ -198,7 +200,7 @@ const styles = {
   backBtn: { background: 'none', border: '1px solid #ffcc33', color: '#ffcc33', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   mainContent: { maxWidth: '1200px', margin: '30px auto', padding: '0 20px' },
   statsGrid: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
-  statCard: { flex: 1, minWidth: '220px', backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.3)' },
+  statCard: { flex: 1, minWidth: '200px', backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '15px', textAlign: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.3)' },
   label: { fontSize: '0.8rem', opacity: 0.6, letterSpacing: '1px', fontWeight: 'bold' },
   value: { fontSize: '2.5rem', margin: '10px 0 0 0' },
   actionGrid: { display: 'flex', gap: '15px', flexWrap: 'wrap' },
