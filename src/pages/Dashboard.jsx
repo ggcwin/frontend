@@ -247,7 +247,8 @@ const Dashboard = () => {
               
               <div style={styles.infoBox}>
                 <h3>My Tickets</h3>
-                <div style={{maxHeight: '260px', overflowY: 'auto'}}>
+                {/* ✅ YAHAN FIX KIYA GAYA HAI */}
+                <div style={{maxHeight: '300px', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px'}}>
                     {myTickets.length > 0 ? myTickets.map((t, i) => {
                         let numC = t.status === 'won' ? '#00e676' : t.status === 'lost' ? '#ff4b2b' : '#ffcc33';
                         const d = new Date(t.createdAt);

@@ -37,6 +37,7 @@ const Login = () => {
 
     return (
         <div style={styles.container}>
+            {/* Slot Rain Background */}
             <div className="slot-rain">
                 {[...Array(25)].map((_, i) => {
                     const randomDir = directions[Math.floor(Math.random() * directions.length)];
@@ -100,13 +101,15 @@ const Login = () => {
                             />
                         </div>
 
-                        {/* ✅ NAYA: Forgot Password Link */}
-                        <p 
-                            onClick={() => navigate('/forgot-password')} 
-                            style={styles.forgotPassword}
-                        >
-                            Forgot Password?
-                        </p>
+                        {/* ✅ FIX: Proper spacing for mobile screens so it doesn't get hidden */}
+                        <div style={{ textAlign: 'right', marginTop: '5px', marginBottom: '10px' }}>
+                            <span 
+                                onClick={() => navigate('/forgot-password')} 
+                                style={styles.forgotPassword}
+                            >
+                                Forgot Password?
+                            </span>
+                        </div>
 
                         <button type="submit" style={styles.spinBtn}>SPIN TO LOGIN</button>
                     </form>
@@ -137,20 +140,20 @@ const Login = () => {
 };
 
 const styles = {
-    container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', fontFamily: "'Montserrat', sans-serif" },
+    container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowY: 'auto', fontFamily: "'Montserrat', sans-serif" },
     navbar: { padding: '20px 5%', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(10px)', zIndex: 10 },
     mainContent: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1 },
-    glassPanel: { background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '40px 30px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' },
-    title: { color: '#ffcc33', fontSize: '2rem', fontWeight: '900', marginBottom: '10px' },
-    subtitle: { color: 'white', opacity: 0.7, fontSize: '0.9rem', marginBottom: '30px' },
-    form: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    glassPanel: { background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '30px 20px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' },
+    title: { color: '#ffcc33', fontSize: '1.8rem', fontWeight: '900', marginBottom: '10px' },
+    subtitle: { color: 'white', opacity: 0.7, fontSize: '0.85rem', marginBottom: '25px' },
+    form: { display: 'flex', flexDirection: 'column', gap: '15px' },
     inputGroup: { display: 'flex', flexDirection: 'column' },
     input: { padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem', outline: 'none', textAlign: 'center' },
     
-    // ✅ Forgot Password Styling
-    forgotPassword: { color: '#ffcc33', cursor: 'pointer', textAlign: 'right', margin: '-10px 0 0 0', fontSize: '0.9rem', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' },
+    // ✅ FIX: Removed negative margins and made it block level for proper spacing
+    forgotPassword: { color: '#ffcc33', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' },
     
-    spinBtn: { padding: '15px', borderRadius: '12px', border: 'none', backgroundColor: '#ffcc33', color: '#5e3a00', fontWeight: '900', fontSize: '1.2rem', cursor: 'pointer', boxShadow: '0 4px 0 #b99100' },
+    spinBtn: { padding: '15px', borderRadius: '12px', border: 'none', backgroundColor: '#ffcc33', color: '#5e3a00', fontWeight: '900', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 4px 0 #b99100' },
     footerText: { marginTop: '20px', fontSize: '0.9rem', color: 'white', opacity: 0.8 },
     link: { color: '#ffcc33', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }
 };
