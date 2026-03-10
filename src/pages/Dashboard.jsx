@@ -91,9 +91,10 @@ const Dashboard = () => {
       } catch (err) { console.error("Winners Fetch Error:", err); }
   };
 
+  // 🚀 MOBILE CACHE FIX ADDED HERE
   const fetchMyTickets = async (userId) => {
       try {
-          const res = await api.get(`/api/ticket/my-tickets/${userId}`);
+          const res = await api.get(`/api/ticket/my-tickets/${userId}?t=${new Date().getTime()}`);
           setMyTickets(res.data);
       } catch (err) { console.error("Ticket Fetch Error:", err); }
   };
@@ -156,7 +157,7 @@ const Dashboard = () => {
               setSlotDigits(finalNumber.split(''));
               setFinalResults(prev => [...prev, { stage: stageNum, number: finalNumber }]);
               setTimeout(() => resolve(), 2000);
-          }, 8000); // 8 seconds spin for more suspense
+          }, 8000); 
       });
   };
 
@@ -235,6 +236,9 @@ const Dashboard = () => {
               <button onClick={() => navigate('/history')} style={styles.iconBtn}>📋 History</button>
               <button onClick={() => navigate('/transfer')} style={styles.iconBtn}>💸 Transfer</button>
               <button onClick={() => navigate('/profile')} style={styles.iconBtn}>👤 Profile</button>
+              {userData?.role === 'admin' && (
+                  <button onClick={() => navigate('/admin/dashboard')} style={{...styles.iconBtn, backgroundColor: '#ff4b2b', borderColor: '#ff4b2b', color: 'white', fontWeight: 'bold'}}>👑 Admin</button>
+              )}
             </div>
 
             <div style={styles.heroSection}>
@@ -309,7 +313,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* --- ✨ NEW: DRAW HISTORY BOX --- */}
+              {/* --- ✨ DRAW HISTORY BOX --- */}
               <div style={styles.infoBox}>
                   <h3>📅 Past Draw Result</h3>
                   <div style={{marginBottom: '10px'}}>
