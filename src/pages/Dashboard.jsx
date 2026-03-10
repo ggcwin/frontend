@@ -347,7 +347,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* --- ✨ DRAW HISTORY BOX --- */}
+              {/* --- ✨ NAYA DRAW HISTORY BOX (1st, 2nd, 3rd) ✨ --- */}
               <div style={styles.infoBox}>
                   <h3>📅 Past Draw Result</h3>
                   <div style={{marginBottom: '10px'}}>
@@ -361,9 +361,19 @@ const Dashboard = () => {
                   <div style={styles.historyResult}>
                       {isFetchingHistory ? <p>Loading...</p> : 
                         pastResult?.winningNumber ? (
-                          <div style={{textAlign: 'center'}}>
-                              <p style={{fontSize: '0.8rem', opacity: 0.7, margin: 0}}>Winning Number:</p>
-                              <h1 style={{color: '#00e676', fontSize: '2.2rem', margin: 0}}>#{pastResult.winningNumber}</h1>
+                          <div style={{width: '100%', display: 'flex', justifyContent: 'space-around', alignItems: 'center'}}>
+                              <div style={{textAlign: 'center'}}>
+                                 <p style={{fontSize: '0.75rem', color: '#ffcc33', margin: 0, fontWeight: 'bold'}}>🥇 1st Prize</p>
+                                 <h2 style={{color: '#00e676', margin: '5px 0 0 0', fontSize: '1.8rem'}}>#{pastResult.winningNumber}</h2>
+                              </div>
+                              <div style={{textAlign: 'center'}}>
+                                 <p style={{fontSize: '0.75rem', color: '#C0C0C0', margin: 0, fontWeight: 'bold'}}>🥈 2nd Prize</p>
+                                 <h3 style={{color: 'white', margin: '5px 0 0 0'}}>#{pastResult.secondWinningNumber || '---'}</h3>
+                              </div>
+                              <div style={{textAlign: 'center'}}>
+                                 <p style={{fontSize: '0.75rem', color: '#cd7f32', margin: 0, fontWeight: 'bold'}}>🥉 3rd Prize</p>
+                                 <h3 style={{color: 'white', margin: '5px 0 0 0'}}>#{pastResult.thirdWinningNumber || '---'}</h3>
+                              </div>
                           </div>
                         ) : <p style={{opacity: 0.5, textAlign: 'center'}}>Pick a date to check result.</p>
                       }
