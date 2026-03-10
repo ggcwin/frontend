@@ -91,7 +91,7 @@ const Dashboard = () => {
       } catch (err) { console.error("Winners Fetch Error:", err); }
   };
 
-  // 🚀 MOBILE CACHE FIX ADDED HERE
+  // 🚀 MOBILE CACHE FIX
   const fetchMyTickets = async (userId) => {
       try {
           const res = await api.get(`/api/ticket/my-tickets/${userId}?t=${new Date().getTime()}`);
@@ -212,6 +212,39 @@ const Dashboard = () => {
 
   return (
     <div style={styles.container}>
+      
+      {/* 🎨 CSS INJECTION FOR MONEY ANIMATION */}
+      <style>{`
+        .money-rain-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 0;
+          overflow: hidden;
+        }
+        .money-drop {
+          position: absolute;
+          top: -10%;
+          font-size: 2rem;
+          opacity: 0.5;
+          animation: fallDown linear infinite;
+        }
+        @keyframes fallDown {
+          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+      `}</style>
+
+      {/* 💸 FALLING MONEY HTML 💸 */}
+      <div className="money-rain-container">
+          {Array.from({ length: 25 }).map((_, i) => (
+              <div key={i} className="money-drop" style={{ left: `${Math.random() * 100}%`, animationDuration: `${Math.random() * 4 + 3}s`, animationDelay: `${Math.random() * 2}s` }}>💸</div>
+          ))}
+      </div>
+
       {showSlotMachine && (
           <div style={styles.slotOverlay}>
               <div style={styles.slotMachineBox}>
@@ -227,7 +260,8 @@ const Dashboard = () => {
           </div>
       )}
 
-      <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s', width: '100%' }}>
+      {/* Main Content Area (Z-Index fix for clicking) */}
+      <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s', width: '100%', position: 'relative', zIndex: 1 }}>
           <Navbar title="GGC WIN" />
           <div style={{textAlign: 'center', marginTop: '10px'}}><span style={styles.timerChip}>Next Draw: {timeLeft}</span></div>
           
@@ -378,17 +412,17 @@ const styles = {
   promoInput: { padding: '12px', borderRadius: '10px', border: 'none', fontSize: '1rem', fontWeight: 'bold', textAlign: 'center', flex: '1 1 200px' },
   promoBtn: { padding: '12px 25px', borderRadius: '10px', border: 'none', backgroundColor: '#00e676', color: '#000', fontWeight: '900', cursor: 'pointer' },
   bottomGrid: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
-  infoBox: { flex: '1 1 280px', background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '20px' },
-  ticketCard: { flex: '1 1 280px', backgroundColor: '#ffcc33', padding: '25px', borderRadius: '25px', textAlign: 'center', color: '#5e3a00' },
-  walletSelect: { padding: '10px', borderRadius: '10px', width: '100%', marginBottom: '10px' },
-  ticketInput: { width: '100%', padding: '12px', borderRadius: '10px', fontSize: '2.5rem', textAlign: 'center', marginBottom: '15px', fontWeight: '900', border: '2px solid #5e3a00' },
-  playBtn: { width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '900', color: 'white', cursor: 'pointer' },
+  infoBox: { flex: '1 1 280px', background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '20px', boxSizing: 'border-box', width: '100%', overflow: 'hidden' },
+  ticketCard: { flex: '1 1 280px', backgroundColor: '#ffcc33', padding: '25px', borderRadius: '25px', textAlign: 'center', color: '#5e3a00', boxSizing: 'border-box', width: '100%' },
+  walletSelect: { padding: '10px', borderRadius: '10px', width: '100%', marginBottom: '10px', fontSize: '1rem', boxSizing: 'border-box' },
+  ticketInput: { width: '100%', padding: '12px', borderRadius: '10px', fontSize: '2.5rem', textAlign: 'center', marginBottom: '15px', fontWeight: '900', border: '2px solid #5e3a00', boxSizing: 'border-box' },
+  playBtn: { width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '900', color: 'white', cursor: 'pointer', fontSize: '1.1rem', boxSizing: 'border-box' },
   ticketRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', marginBottom: '5px' },
   tNumber: { fontSize: '1.2rem', fontWeight: '900' },
   tryAgainBtn: { padding: '5px 10px', borderRadius: '8px', border: '1px solid #ff4b2b', color: '#ffcc33', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' },
   dateInput: { width: '100%', padding: '10px', borderRadius: '10px', border: 'none', backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', outline: 'none' },
   historyResult: { padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '15px', minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  winnerRow: { display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginBottom: '5px', fontSize: '0.85rem' }
+  winnerRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '10px', marginBottom: '5px', fontSize: '0.85rem' }
 };
 
 export default Dashboard;
