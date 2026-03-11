@@ -4,23 +4,32 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const AdminDraw = () => {
-  const [unsoldNumbers, setUnsoldNumbers] = useState([]);
-  const [totalSold, setTotalSold] = useState(0);
   const [winners, setWinners] = useState(['', '', '']);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 📡 Backend se Unsold Numbers aur Locked Numbers mangwana
-  const fetchDrawData = async () => {
-    try {
-      const res = await api.get('/api/admin/unsold-numbers');
-      setUnsoldNumbers(res.data.unsold);
-      setTotalSold(res.data.totalSold);
+  // ✨ NAYA: Filters aur Report ke States ✨
+  const [filterType, setFilterType] = useState('unsold');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [numbersData, setNumbersData] = useState({ sold: [], unsold: [], repeated: [] });
+  const [totalSold, setTotalSold] = useState(0);
 
+  // 📡 Backend se Data Mangwana (Date ke hisab se)
+  const fetchDrawData = async () => {
+    setLoading(true);
+    try {
+      // 1. Lock kiye hue numbers check karna
       const settingsRes = await api.get('/api/admin/current-winners');
-      if (settingsRes.data.isRigged) {
+      if (settingsRes.data && settingsRes.data.isRigged) {
         setWinners(settingsRes.data.nextWinners);
       }
+
+      // 2. Numbers Report (Sold, Unsold, Repeated) lana
+      const url = selectedDate ? `/api/admin/numbers-report?date=${selectedDate}` : '/api/admin/numbers-report';
+      const res = await api.get(url);
+      setNumbersData(res.data);
+      setTotalSold(res.data.sold ? res.data.sold.length : 0);
+
       setLoading(false);
     } catch (err) {
       toast.error("Failed to load draw data");
@@ -28,9 +37,10 @@ const AdminDraw = () => {
     }
   };
 
+  // Jab bhi Date change ho, naya data fetch ho
   useEffect(() => {
     fetchDrawData();
-  }, []);
+  }, [selectedDate]);
 
   // 🔒 Winning Numbers Lock karne ka function
   const handleSetWinners = async (e) => {
@@ -46,6 +56,31 @@ const AdminDraw = () => {
     } catch (err) {
       toast.error("Failed to lock numbers. Backend check karein!", { id: loadToast });
     }
+  };
+
+  // 📥 EXPORT TO EXCEL (.CSV)
+  const exportToCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    if (filterType === 'repeated') {
+        csvContent += "Number,Times Sold\n";
+        numbersData.repeated.forEach(row => {
+            csvContent += `${row.number},${row.count}\n`;
+        });
+    } else {
+        csvContent += "Ticket Number\n";
+        const targetArray = filterType === 'sold' ? numbersData.sold : numbersData.unsold;
+        targetArray.forEach(num => {
+            csvContent += `${num}\n`;
+        });
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `GGC_Numbers_${filterType}_${selectedDate || 'Today'}.csv`);
+    document.body.appendChild(link);
+    link.click();
   };
 
   return (
@@ -88,32 +123,77 @@ const AdminDraw = () => {
           </form>
         </div>
 
-        {/* --- 📊 UNSOLD NUMBERS RECORD --- */}
+        {/* --- 📊 NUMBERS REPORT & FILTER SECTION --- */}
         <div style={{...styles.card, marginTop: '30px'}}>
-          <h2 style={{color: '#00e676'}}>📊 Unsold Numbers ({unsoldNumbers.length})</h2>
-          <p style={{marginBottom: '20px', opacity: 0.8}}>Total Tickets Sold For Next Draw: <b>{totalSold}</b></p>
+          
+          <div style={styles.filterHeader}>
+            <div>
+                <h2 style={{color: '#00e676', margin: 0}}>📊 Numbers Report</h2>
+                <p style={{opacity: 0.8, marginTop: '5px', fontSize: '0.9rem'}}>
+                    Total Tickets Sold: <b>{totalSold}</b>
+                </p>
+            </div>
+            
+            {/* ✨ YAHAN HAI AAP KA DROPDOWN AUR DATE FILTER ✨ */}
+            <div style={styles.controlsWrapper}>
+                <input 
+                    type="date" 
+                    style={styles.controlInput}
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                />
+                
+                <select 
+                    style={styles.controlInput}
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                >
+                    <option value="unsold">Unsold Numbers ({numbersData.unsold.length})</option>
+                    <option value="sold">Sold Numbers ({numbersData.sold.length})</option>
+                    <option value="repeated">Repeated Numbers (Top)</option>
+                </select>
+
+                <button onClick={exportToCSV} style={styles.exportBtn}>
+                    📥 Export .CSV
+                </button>
+            </div>
+          </div>
           
           <div style={styles.numbersBox}>
-            {loading ? <p>Loading Numbers...</p> : 
-              unsoldNumbers.length > 0 ? unsoldNumbers.map((num, i) => (
-                <span key={i} style={styles.badge}>{num}</span>
-              )) : <p>No unsold numbers yet.</p>
-            }
+            {loading ? <p style={{padding: '20px'}}>Loading Data...</p> : (
+                <>
+                    {filterType === 'unsold' && numbersData.unsold.map((num, i) => (
+                        <span key={i} style={{...styles.badge, color: '#00e676', borderColor: '#00e676'}}>{num}</span>
+                    ))}
+
+                    {filterType === 'sold' && numbersData.sold.map((num, i) => (
+                        <span key={i} style={{...styles.badge, color: '#ff4b2b', borderColor: '#ff4b2b'}}>{num}</span>
+                    ))}
+
+                    {filterType === 'repeated' && numbersData.repeated.map((item, i) => (
+                        <div key={i} style={styles.repeatedBadge}>
+                            <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'white' }}>{item.number}</span>
+                            <span style={{ fontSize: '12px', color: '#ffcc33' }}>Sold: {item.count}x</span>
+                        </div>
+                    ))}
+
+                    {(filterType === 'sold' && numbersData.sold.length === 0) && <p style={{padding: '20px', color: 'gray'}}>No tickets sold yet.</p>}
+                    {(filterType === 'repeated' && numbersData.repeated.length === 0) && <p style={{padding: '20px', color: 'gray'}}>No numbers repeated yet.</p>}
+                </>
+            )}
           </div>
-          <p style={{fontSize: '0.8rem', color: '#888', marginTop: '15px'}}>
-            * Numbers are automatically removed from this list as users buy tickets.
-          </p>
         </div>
+
       </div>
     </div>
   );
 };
 
 const styles = {
-  container: { backgroundColor: '#121212', color: 'white', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" },
+  container: { backgroundColor: '#121212', color: 'white', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif", paddingBottom: '50px' },
   navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 5%', backgroundColor: '#1e1e1e', borderBottom: '2px solid #333' },
   backBtn: { background: 'none', border: '1px solid #ffcc33', color: '#ffcc33', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
-  mainContent: { maxWidth: '800px', margin: '40px auto', padding: '0 20px' },
+  mainContent: { maxWidth: '900px', margin: '40px auto', padding: '0 20px' },
   card: { backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '1px solid #333' },
   form: { display: 'flex', flexDirection: 'column', gap: '20px' },
   inputsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' },
@@ -121,8 +201,17 @@ const styles = {
   label: { color: '#ffcc33', fontSize: '0.9rem', fontWeight: 'bold' },
   drawInput: { padding: '15px', borderRadius: '10px', border: '1px solid #444', backgroundColor: '#000', color: '#ffcc33', fontSize: '2rem', textAlign: 'center', fontWeight: '900', outline: 'none' },
   lockBtn: { padding: '18px', borderRadius: '10px', border: 'none', backgroundColor: '#ff4b2b', color: 'white', fontWeight: '900', fontSize: '1.1rem', cursor: 'pointer', marginTop: '10px', boxShadow: '0 5px 15px rgba(255, 75, 43, 0.3)' },
-  numbersBox: { display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '300px', overflowY: 'auto', backgroundColor: '#000', padding: '15px', borderRadius: '10px', border: '1px solid #333' },
-  badge: { backgroundColor: 'rgba(0, 230, 118, 0.1)', color: '#00e676', padding: '4px 8px', borderRadius: '5px', fontSize: '0.85rem', border: '1px solid rgba(0, 230, 118, 0.3)' }
+  
+  // Filter Section Styles
+  filterHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px', borderBottom: '1px solid #333', paddingBottom: '15px', marginBottom: '20px' },
+  controlsWrapper: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
+  controlInput: { padding: '8px 12px', borderRadius: '8px', backgroundColor: '#2a2a2a', color: 'white', border: '1px solid #444', outline: 'none', fontSize: '0.95rem' },
+  exportBtn: { padding: '8px 15px', backgroundColor: '#00baf2', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0, 186, 242, 0.3)' },
+  
+  // Grid Styles
+  numbersBox: { display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '350px', overflowY: 'auto', backgroundColor: '#000', padding: '15px', borderRadius: '10px', border: '1px solid #333' },
+  badge: { backgroundColor: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.9rem', border: '1px solid', fontWeight: 'bold' },
+  repeatedBadge: { padding: '8px 15px', backgroundColor: '#2a2a2a', borderLeft: '4px solid #ffcc33', borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center' }
 };
 
 export default AdminDraw;
