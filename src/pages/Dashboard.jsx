@@ -56,6 +56,14 @@ const Dashboard = () => {
       const minute = parseInt(getPart('minute'));
       const second = parseInt(getPart('second'));
 
+      // ✨ NAYA: 10:00 PM PKT Notification Alert ✨
+      if (hour === 22 && minute === 0 && second === 0) {
+          toast('🎁 GGC WIN Alert!\nYour next reward is just an hour away! Stay tuned for the 11 PM draw. 🎯', {
+              duration: 10000, icon: '🔔',
+              style: { background: '#ffcc33', color: '#5e3a00', fontWeight: 'bold' }
+          });
+      }
+
       let targetUTC = new Date(Date.UTC(parseInt(getPart('year')), parseInt(getPart('month')) - 1, parseInt(getPart('day')), 18, 0, 0));
 
       if (hour >= 23) {
@@ -64,12 +72,14 @@ const Dashboard = () => {
 
       const diff = targetUTC.getTime() - now.getTime();
 
+      // Lock buttons 3 minutes before draw
       if (diff <= 180000 && diff > 0) {
           setIsButtonDisabled(true);
       } else {
           setIsButtonDisabled(false);
       }
 
+      // Trigger Slot at exactly 11:00 PM
       if (hour === 23 && minute === 0 && second === 0) {
           triggerSlotMachine();
       }
@@ -91,7 +101,6 @@ const Dashboard = () => {
       } catch (err) { console.error("Winners Fetch Error:", err); }
   };
 
-  // 🚀 MOBILE CACHE FIX
   const fetchMyTickets = async (userId) => {
       try {
           const res = await api.get(`/api/ticket/my-tickets/${userId}?t=${new Date().getTime()}`);
@@ -99,7 +108,6 @@ const Dashboard = () => {
       } catch (err) { console.error("Ticket Fetch Error:", err); }
   };
 
-  // ✨ DRAW HISTORY FETCH FUNCTION
   const fetchPastResult = async (date) => {
     if (!date) return;
     setIsFetchingHistory(true);
@@ -114,6 +122,7 @@ const Dashboard = () => {
     }
   };
 
+  // ✨ MASTER FIX: SLOT MACHINE SYNC ✨
   const triggerSlotMachine = async () => {
       if (showSlotMachine) return; 
       setShowSlotMachine(true);
@@ -121,16 +130,25 @@ const Dashboard = () => {
       spinAudio.loop = true;
       spinAudio.play().catch(e => console.log("Sound error", e));
 
-      let generatedWinners = [];
+      let generatedWinners = ['000', '000', '000'];
+      
       try {
-          const res = await api.get('/api/admin/current-winners');
-          generatedWinners = (res.data && res.data.isRigged) ? res.data.nextWinners : [
-              Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
-              Math.floor(Math.random() * 1000).toString().padStart(3, '0'), 
-              Math.floor(Math.random() * 1000).toString().padStart(3, '0')  
-          ];
+          // 1. Wait 3 Seconds: Backend cron job ko apna kaam (Admin locks/Random DB save) mukammal karne dein
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // 2. Fetch the ACTUAL saved result for today from the server
+          const todayStr = new Date().toISOString().split('T')[0];
+          const res = await api.get(`/api/draw/result-by-date?date=${todayStr}`);
+          
+          if (res.data && res.data.winningNumber) {
+              generatedWinners = [
+                  res.data.winningNumber, 
+                  res.data.secondWinningNumber || '000', 
+                  res.data.thirdWinningNumber || '000'
+              ];
+          }
       } catch (err) {
-          generatedWinners = Array(3).fill(0).map(() => Math.floor(Math.random() * 1000).toString().padStart(3, '0'));
+          console.log("Could not fetch real draw, using fallback.");
       }
 
       await runSpin(1, generatedWinners[0]);
@@ -142,6 +160,7 @@ const Dashboard = () => {
           setShowSlotMachine(false);
           setDrawStage(0);
           fetchWinners(); 
+          if(userData) fetchMyTickets(userData._id); 
       }, 4000);
   };
 
@@ -212,33 +231,12 @@ const Dashboard = () => {
 
   return (
     <div style={styles.container}>
-      
-      {/* 🎨 CSS INJECTION FOR MONEY ANIMATION */}
       <style>{`
-        .money-rain-container {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          z-index: 0;
-          overflow: hidden;
-        }
-        .money-drop {
-          position: absolute;
-          top: -10%;
-          font-size: 2rem;
-          opacity: 0.5;
-          animation: fallDown linear infinite;
-        }
-        @keyframes fallDown {
-          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
-        }
+        .money-rain-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .money-drop { position: absolute; top: -10%; font-size: 2rem; opacity: 0.5; animation: fallDown linear infinite; }
+        @keyframes fallDown { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
       `}</style>
 
-      {/* 💸 FALLING MONEY HTML 💸 */}
       <div className="money-rain-container">
           {Array.from({ length: 25 }).map((_, i) => (
               <div key={i} className="money-drop" style={{ left: `${Math.random() * 100}%`, animationDuration: `${Math.random() * 4 + 3}s`, animationDelay: `${Math.random() * 2}s` }}>💸</div>
@@ -252,7 +250,7 @@ const Dashboard = () => {
                   <div style={styles.slotWindow}>
                       {slotDigits.map((d, i) => <div key={i} style={styles.slotReel}>{d}</div>)}
                   </div>
-                  <p style={styles.slotSubtitle}>Spinning Luck...</p>
+                  <p style={styles.slotSubtitle}>Loading Synced Result...</p>
                   <div style={styles.resultsBoard}>
                       {finalResults.map((res, i) => (<div key={i} style={styles.resultItem}><span>{res.stage} Prize:</span><span style={{color: '#00e676'}}>#{res.number}</span></div>))}
                   </div>
@@ -260,7 +258,6 @@ const Dashboard = () => {
           </div>
       )}
 
-      {/* Main Content Area (Z-Index fix for clicking) */}
       <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s', width: '100%', position: 'relative', zIndex: 1 }}>
           <Navbar title="GGC WIN" />
           <div style={{textAlign: 'center', marginTop: '10px'}}><span style={styles.timerChip}>Next Draw: {timeLeft}</span></div>
@@ -312,7 +309,6 @@ const Dashboard = () => {
             </div>
 
             <div style={styles.bottomGrid}>
-              {/* --- TICKET PURCHASE BOX --- */}
               <div style={styles.ticketCard}>
                 <h2>Pick 3 Digits</h2>
                 <div style={styles.selectWrapper}>
@@ -323,10 +319,9 @@ const Dashboard = () => {
                     </select>
                 </div>
                 <input type="text" placeholder="000" value={luckyNumber} onChange={(e) => setLuckyNumber(e.target.value.replace(/\D/g, "").slice(0,3))} style={styles.ticketInput} disabled={isButtonDisabled}/>
-                <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ PAUSED" : "BUY TICKET ($0.50)"}</button>
+                <button onClick={submitEntry} disabled={isButtonDisabled} style={{...styles.playBtn, backgroundColor: isButtonDisabled ? '#555' : '#ff4b2b'}}>{isButtonDisabled ? "⏳ LOCKED" : "BUY TICKET ($0.50)"}</button>
               </div>
               
-              {/* --- MY TICKETS BOX --- */}
               <div style={styles.infoBox}>
                 <h3>My Tickets</h3>
                 <div style={{maxHeight: '300px', overflowY: 'auto', paddingBottom: '10px'}}>
@@ -347,7 +342,6 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* --- ✨ NAYA DRAW HISTORY BOX (1st, 2nd, 3rd) ✨ --- */}
               <div style={styles.infoBox}>
                   <h3>📅 Past Draw Result</h3>
                   <div style={{marginBottom: '10px'}}>
@@ -380,9 +374,9 @@ const Dashboard = () => {
                   </div>
                   <hr style={{opacity: 0.1, margin: '15px 0'}} />
                   <h4 style={{marginBottom: '10px', fontSize: '0.9rem'}}>Recent Winners</h4>
-                  {realWinners.slice(0, 3).map((w, i) => (
+                  {realWinners.length > 0 ? realWinners.slice(0, 3).map((w, i) => (
                       <div key={i} style={styles.winnerRow}><span>{w.username}</span><b style={{color: '#00e676'}}>${w.prize}</b></div>
-                  ))}
+                  )) : <p style={{opacity:0.5, fontSize: '0.8rem'}}>No winners yet.</p>}
               </div>
             </div>
           </div>
