@@ -19,7 +19,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminVoucher from './pages/AdminVoucher';
 import AdminSettings from './pages/AdminSettings'; 
 import AdminDeposits from './pages/AdminDeposits';
-// ✅ Naya VIP Approval Page Import Kiya
 import AdminWithdrawals from './pages/AdminWithdrawals'; 
 import AdminDraw from './pages/AdminDraw'; 
 
@@ -31,6 +30,20 @@ const ProtectedRoute = ({ children }) => {
   
   if (!token) {
     return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
+// ==========================================
+// ✨ NAYA: SMART PUBLIC ROUTE (Jo Bar Bar Logout Hone Se Bachayega)
+// ==========================================
+const PublicRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  
+  if (token) {
+    // Agar token pehle se mojood hai, toh seedha andar jao!
+    return <Navigate to="/dashboard" replace />;
   }
   
   return children;
@@ -52,10 +65,10 @@ function App() {
       />
       
       <Routes>
-        {/* 🔓 PUBLIC ROUTES */}
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* 🔓 PUBLIC ROUTES (Ab PublicRoute ke andar hain) */}
+        <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         
         {/* 🔒 SECURE USER ROUTES */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -64,13 +77,13 @@ function App() {
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
-        <Route path="/buy-ticket" element={<BuyTicket />} />
+        {/* ✨ FIX: BuyTicket route ko bhi ab secure kar diya gaya hai */}
+        <Route path="/buy-ticket" element={<ProtectedRoute><BuyTicket /></ProtectedRoute>} />
         
         {/* 👑 SECURE ADMIN ROUTES */}
         <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/vouchers" element={<ProtectedRoute><AdminVoucher /></ProtectedRoute>} />
         <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
-        {/* ✅ Purane AdminWithdraw ko naye AdminWithdrawals se replace kiya */}
         <Route path="/admin/withdrawals" element={<ProtectedRoute><AdminWithdrawals /></ProtectedRoute>} />
         <Route path="/admin/deposits" element={<ProtectedRoute><AdminDeposits /></ProtectedRoute>} />
         <Route path="/admin/draw" element={<ProtectedRoute><AdminDraw /></ProtectedRoute>} />

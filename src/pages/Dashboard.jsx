@@ -4,6 +4,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import spinSoundFile from '../assets/slot-sound.mp3';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -16,7 +17,6 @@ const Dashboard = () => {
   
   const [voucherCode, setVoucherCode] = useState("");
   
-  // ✨ DRAW HISTORY STATES
   const [historyDate, setHistoryDate] = useState(''); 
   const [pastResult, setPastResult] = useState(null);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -25,6 +25,9 @@ const Dashboard = () => {
   const [drawStage, setDrawStage] = useState(0); 
   const [slotDigits, setSlotDigits] = useState(['0', '0', '0']);
   const [finalResults, setFinalResults] = useState([]);
+  
+  // ✨ IsSpinning state for extra visual effects
+  const [isSpinning, setIsSpinning] = useState(false);
 
   const [spinAudio] = useState(new Audio(spinSoundFile));
   const navigate = useNavigate();
@@ -39,6 +42,37 @@ const Dashboard = () => {
     };
     loadUser();
     fetchWinners();
+
+    const setupDailyNotification = async () => {
+      try {
+        let permStatus = await LocalNotifications.checkPermissions();
+        if (permStatus.display !== 'granted') {
+          permStatus = await LocalNotifications.requestPermissions();
+        }
+        
+        if (permStatus.display === 'granted') {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title: "🎁 GGC WIN Alert!",
+                body: "Your next reward is just an hour away! Stay tuned for the 11 PM draw. 🎯",
+                id: 100, 
+                schedule: {
+                  allowWhileIdle: true, 
+                  on: { hour: 22, minute: 0 } 
+                },
+                sound: null, 
+                smallIcon: "ic_stat_icon_config_sample" 
+              }
+            ]
+          });
+        }
+      } catch (error) {
+        console.log("Notification Setup Error:", error);
+      }
+    };
+
+    setupDailyNotification(); 
 
     const timer = setInterval(() => {
       const now = new Date();
@@ -56,7 +90,6 @@ const Dashboard = () => {
       const minute = parseInt(getPart('minute'));
       const second = parseInt(getPart('second'));
 
-      // ✨ NAYA: 10:00 PM PKT Notification Alert ✨
       if (hour === 22 && minute === 0 && second === 0) {
           toast('🎁 GGC WIN Alert!\nYour next reward is just an hour away! Stay tuned for the 11 PM draw. 🎯', {
               duration: 10000, icon: '🔔',
@@ -72,14 +105,12 @@ const Dashboard = () => {
 
       const diff = targetUTC.getTime() - now.getTime();
 
-      // Lock buttons 3 minutes before draw
       if (diff <= 180000 && diff > 0) {
           setIsButtonDisabled(true);
       } else {
           setIsButtonDisabled(false);
       }
 
-      // Trigger Slot at exactly 11:00 PM
       if (hour === 23 && minute === 0 && second === 0) {
           triggerSlotMachine();
       }
@@ -122,7 +153,6 @@ const Dashboard = () => {
     }
   };
 
-  // ✨ MASTER FIX: SLOT MACHINE SYNC ✨
   const triggerSlotMachine = async () => {
       if (showSlotMachine) return; 
       setShowSlotMachine(true);
@@ -133,10 +163,8 @@ const Dashboard = () => {
       let generatedWinners = ['000', '000', '000'];
       
       try {
-          // 1. Wait 3 Seconds: Backend cron job ko apna kaam (Admin locks/Random DB save) mukammal karne dein
           await new Promise(resolve => setTimeout(resolve, 3000));
           
-          // 2. Fetch the ACTUAL saved result for today from the server
           const todayStr = new Date().toISOString().split('T')[0];
           const res = await api.get(`/api/draw/result-by-date?date=${todayStr}`);
           
@@ -167,13 +195,15 @@ const Dashboard = () => {
   const runSpin = (stageNum, finalNumber) => {
       return new Promise((resolve) => {
           setDrawStage(stageNum);
+          setIsSpinning(true);
           const spinInterval = setInterval(() => {
               setSlotDigits([Math.floor(Math.random() * 10).toString(), Math.floor(Math.random() * 10).toString(), Math.floor(Math.random() * 10).toString()]);
-          }, 100); 
+          }, 80); // Thora fast kiya taake aur realistic spin lagay
 
           setTimeout(() => {
               clearInterval(spinInterval);
               setSlotDigits(finalNumber.split(''));
+              setIsSpinning(false);
               setFinalResults(prev => [...prev, { stage: stageNum, number: finalNumber }]);
               setTimeout(() => resolve(), 2000);
           }, 8000); 
@@ -235,6 +265,17 @@ const Dashboard = () => {
         .money-rain-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
         .money-drop { position: absolute; top: -10%; font-size: 2rem; opacity: 0.5; animation: fallDown linear infinite; }
         @keyframes fallDown { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+        
+        /* ✨ NAYA: 3D Spin Animation Effect */
+        .reels-spinning { animation: shakeVibrate 0.1s infinite alternate; }
+        @keyframes shakeVibrate { 0% { transform: translateY(-1px); } 100% { transform: translateY(1px); } }
+        
+        /* ✨ NAYA: Casino Neon Glow */
+        .casino-glow-box { animation: neonPulse 2s infinite alternate; }
+        @keyframes neonPulse {
+            0% { box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.2), 0 0 15px rgba(255, 204, 51, 0.3); }
+            100% { box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.4), 0 0 35px rgba(255, 204, 51, 0.7); }
+        }
       `}</style>
 
       <div className="money-rain-container">
@@ -245,20 +286,38 @@ const Dashboard = () => {
 
       {showSlotMachine && (
           <div style={styles.slotOverlay}>
-              <div style={styles.slotMachineBox}>
+              <div style={{...styles.slotMachineBox}} className="casino-glow-box">
+                  {/* Top Highlight line for 3D metallic feel */}
+                  <div style={styles.highlightLine}></div> 
+                  
                   <h1 style={styles.slotTitle}>{drawStage === 1 ? '🥇 1st' : drawStage === 2 ? '🥈 2nd' : '🥉 3rd'} Prize</h1>
+                  
+                  {/* Outer window with deep inset shadow */}
                   <div style={styles.slotWindow}>
-                      {slotDigits.map((d, i) => <div key={i} style={styles.slotReel}>{d}</div>)}
+                      {slotDigits.map((d, i) => (
+                          // Real 3D Cylinder look for Reels
+                          <div key={i} style={styles.slotReel} className={isSpinning ? "reels-spinning" : ""}>
+                              {d}
+                          </div>
+                      ))}
                   </div>
+                  
                   <p style={styles.slotSubtitle}>Loading Synced Result...</p>
+                  
                   <div style={styles.resultsBoard}>
-                      {finalResults.map((res, i) => (<div key={i} style={styles.resultItem}><span>{res.stage} Prize:</span><span style={{color: '#00e676'}}>#{res.number}</span></div>))}
+                      {finalResults.map((res, i) => (
+                          <div key={i} style={styles.resultItem}>
+                              <span>{res.stage} Prize:</span>
+                              <span style={styles.neonText}>#{res.number}</span>
+                          </div>
+                      ))}
                   </div>
               </div>
           </div>
       )}
 
-      <div style={{ filter: showSlotMachine ? 'blur(10px) grayscale(80%)' : 'none', transition: '1s', width: '100%', position: 'relative', zIndex: 1 }}>
+      {/* Main UI */}
+      <div style={{ filter: showSlotMachine ? 'blur(15px) grayscale(50%)' : 'none', transition: '1s', width: '100%', position: 'relative', zIndex: 1 }}>
           <Navbar title="GGC WIN" />
           <div style={{textAlign: 'center', marginTop: '10px'}}><span style={styles.timerChip}>Next Draw: {timeLeft}</span></div>
           
@@ -387,14 +446,26 @@ const Dashboard = () => {
 
 const styles = {
   container: { backgroundColor: '#2e026d', backgroundImage: 'linear-gradient(135deg, #2e026d 0%, #51127c 100%)', color: 'white', minHeight: '100vh', padding: '0 0 50px 0', fontFamily: "'Montserrat', sans-serif" },
-  slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
-  slotMachineBox: { backgroundColor: '#1a0033', border: '5px solid #ffcc33', borderRadius: '30px', padding: '30px', textAlign: 'center', width: '90%', maxWidth: '350px' },
-  slotTitle: { color: '#ffcc33', fontSize: '1.8rem', marginBottom: '20px' },
-  slotWindow: { display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' },
-  slotReel: { width: '60px', height: '80px', backgroundColor: 'white', color: '#000', fontSize: '3rem', fontWeight: '900', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '10px' },
-  slotSubtitle: { color: '#00e676', fontSize: '1rem', marginBottom: '20px' },
-  resultsBoard: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' },
+  
+  // ✨ VIP iOS Glassmorphism Overlay
+  slotOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(15px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
+  
+  // ✨ 3D Casino Machine Box
+  slotMachineBox: { position: 'relative', background: 'linear-gradient(145deg, #2a004d 0%, #4a0080 100%)', border: '3px solid rgba(255, 204, 51, 0.8)', borderRadius: '35px', padding: '40px 30px', textAlign: 'center', width: '90%', maxWidth: '380px' },
+  highlightLine: { position: 'absolute', top: '2px', left: '10%', width: '80%', height: '4px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)', borderRadius: '10px' },
+  slotTitle: { color: '#fff', fontSize: '2rem', marginBottom: '25px', fontWeight: '900', textShadow: '0 0 15px rgba(255, 204, 51, 1), 0 2px 4px rgba(0,0,0,0.8)', letterSpacing: '2px' },
+  
+  // ✨ Inner Deep Shadow Window
+  slotWindow: { display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '25px', background: '#0a001a', padding: '25px 20px', borderRadius: '25px', border: '2px solid #222', boxShadow: 'inset 0 15px 30px rgba(0,0,0,0.9), 0 2px 0 rgba(255,255,255,0.1)' },
+  
+  // ✨ Realistic 3D Cylinder Reels
+  slotReel: { width: '70px', height: '100px', background: 'linear-gradient(180deg, #d0d0d0 0%, #ffffff 40%, #ffffff 60%, #a0a0a0 100%)', color: '#111', fontSize: '4.5rem', fontWeight: '900', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '12px', border: '1px solid #555', boxShadow: '0 8px 15px rgba(0,0,0,0.6), inset 0 10px 10px rgba(0,0,0,0.1)', textShadow: '0 3px 5px rgba(0,0,0,0.3)' },
+  
+  slotSubtitle: { color: '#00baf2', fontSize: '1.1rem', marginBottom: '25px', fontWeight: 'bold', letterSpacing: '1px', textShadow: '0 0 10px rgba(0, 186, 242, 0.6)' },
+  resultsBoard: { display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)' },
+  resultItem: { display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 'bold', color: '#ddd' },
+  neonText: { color: '#00e676', textShadow: '0 0 10px rgba(0, 230, 118, 0.8)' },
+  
   timerChip: { backgroundColor: '#ff4b2b', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold' },
   mainContent: { maxWidth: '1100px', margin: '30px auto', padding: '0 15px' },
   navBarShortcuts: { display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
