@@ -21,13 +21,12 @@ const Profile = () => {
       const savedUser = JSON.parse(data);
       setUser(savedUser);
       
-      // LOGOUT BUG FIX: Pehle check karo ke ID hai ya nahi, phir fetch karo
+      // Pehle check karo ke ID hai ya nahi, phir fetch karo
       if (savedUser && savedUser._id) {
         fetchProfile(savedUser._id);
       }
     } catch (err) {
       console.log("Local data issue, staying on page");
-      // navigate('/') Hata diya taake zabardasti logout na ho
     }
   }, []);
 
@@ -41,10 +40,16 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    toast.success("Logged out successfully!");
-    navigate('/');
+  // ✨ THE NUCLEAR FIX: HARD LOGOUT
+  const handleLogout = (e) => {
+    if (e) e.preventDefault();
+    
+    // 1. Sab kuch delete karo (Token, User, har cheez)
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 2. React Router ki history ko bypass kar ke zero state par wapas phenko
+    window.location.href = '/';
   };
 
   const referralLink = `${window.location.origin}/register?ref=${user?.username}`;
@@ -78,7 +83,7 @@ const Profile = () => {
 
       <div style={styles.content}>
         
-        {/* Profile Card with Earnings (Jo aap ke code se gayab tha) */}
+        {/* Profile Card with Earnings */}
         <div style={styles.card}>
           <div style={styles.avatar}>{user?.username?.charAt(0).toUpperCase()}</div>
           <h2 style={{marginTop: '15px'}}>{user?.fullName || user?.username}</h2>
